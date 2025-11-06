@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laundry Shop Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-box {
+            background: white;
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            width: 360px;
+            text-align: center;
+        }
+        .login-box h2 {
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .password-container {
+            position: relative;
+        }
+        .toggle-eye {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #555;
+            font-size: 18px;
+            user-select: none;
+        }
+        .flash {
+            background-color: #ffe0e0;
+            color: #d8000c;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #e0ffe5;
+            color: #006600;
+        }
+        p {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>🧺 Laundry Shop Login</h2>
+
+        <!-- Flash Message Display -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash {% if category == 'success' %}success{% endif %}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" autocomplete="off">
+            <input type="text" name="username" placeholder="Username" autocomplete="new-username" required>
+            <div class="password-container">
+                <input type="password" id="password" name="password" placeholder="Password" autocomplete="new-password" required>
+                <span class="toggle-eye" id="toggleEye">👁️</span>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <p>Don’t have an account? <a href="/register">Register</a></p>
+    </div>
+
+    <script>
+        const eye = document.getElementById('toggleEye');
+        const password = document.getElementById('password');
+
+        eye.addEventListener('mousedown', () => password.type = 'text');
+        eye.addEventListener('mouseup', () => password.type = 'password');
+        eye.addEventListener('mouseleave', () => password.type = 'password');
+    </script>
+</body>
+</html>
