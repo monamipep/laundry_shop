@@ -1,73 +1,317 @@
-const paymentModal = document.getElementById('paymentModal');
-const modalTotal = document.getElementById('modalTotal');
-const modalContent = paymentModal.querySelector('.modal-content');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Dashboard | Laundry Shop</title>
+<style>
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 40px 10px;
+    background: url("{{ url_for('static', filename='img/laundry-background.png') }}") no-repeat center center fixed;
+    background-size: cover;
+}
+/* Container */
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: rgba(240, 248, 255, 0.96);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    position: relative;
+}
+/* Titles */
+h2, h3 { color: #004080; margin-top: 0; }
+/* Logout Box */
+.logout-box {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: #ff9933;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-decoration: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transition: background 0.3s;
+}
+.logout-box:hover { background: #ff7700; }
+/* Laundry options */
+.laundry-types { display:flex; flex-wrap:wrap; gap:15px; margin:15px 0; }
+.laundry-option {
+    flex:1 1 150px;
+    text-align:center;
+    border:2px solid #aac8ff;
+    border-radius:12px;
+    padding:15px;
+    cursor:pointer;
+    transition:0.3s;
+    background:white;
+}
+.laundry-option:hover { border-color:#007bff; background:#e8f2ff; }
+.laundry-option.selected { border-color:#007bff; background:#d6e7ff; }
+.laundry-option img { width:70px; height:70px; margin-bottom:10px; object-fit:contain; }
+.laundry-option input { display:none; }
+/* Inputs & Buttons */
+input, button, select {
+    padding:8px;
+    margin:5px 0;
+    width:100%;
+    box-sizing:border-box;
+    border:1px solid #aac8ff;
+    border-radius:5px;
+}
+button {
+    background:#007bff;
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+    border-radius:6px;
+    transition: background 0.3s;
+}
+button:hover { background:#0056b3; }
+/* Pickup toggle */
+.switch { position: relative; display: inline-block; width: 60px; height: 34px; margin-right:10px; }
+.switch input {display:none;}
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius:34px; }
+.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius:50%; }
+input:checked + .slider { background-color: #007bff; }
+input:checked + .slider:before { transform: translateX(26px); }
+.pickup-section { margin-top:15px; padding:15px; background:#f0f8ff; border:1px solid #aac8ff; border-radius:10px; }
+#pickupDetails { display:none; margin-top:10px; }
+/* Orders table */
+table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+    font-size:14px;
+    background:white;
+    border-radius:8px;
+    overflow:hidden;
+}
+th, td { padding:10px; border:1px solid #cce; text-align:center; }
+th { background:#007bff; color:white; }
+tr:nth-child(even){ background:#f5faff; }
+#pricePreview { font-weight:bold; color:#007b33; margin:10px 0; text-align:right; }
+/* Modals */
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); }
+.modal.show { display:block; }
+.modal-content { background:#fff; margin:5% auto; padding:20px; border-radius:10px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; }
+.modal h3 { margin-top:0; color:#004080; }
+.modal label { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #eee; font-size:15px; }
+.modal label:hover { background:#f2f7ff; }
+.modal input[type="checkbox"] { width:20px; height:20px; }
+.modal button { margin-top:15px; width:100%; background:#007bff; }
+.modal-close { float:right; cursor:pointer; color:red; font-weight:bold; }
+.total-paid { font-weight:bold; text-align:right; margin-top:10px; color:#004080; }
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Welcome, {{ user.username }} 👋</h2>
+<h3>Place a New Laundry Order</h3>
+<form method="POST" id="orderForm">
+<label><b>Select Laundry Type:</b></label>
+<div class="laundry-types">
+<label class="laundry-option">
+<input type="radio" name="laundry_type" value="Wash-Dry-Fold" data-price="23" required>
+<img src="{{ url_for('static', filename='img/wash.png') }}">
+<div>Wash-Dry-Fold<br><small>₱23/kg</small></div>
+</label>
+<label class="laundry-option">
+<input type="radio" name="laundry_type" value="Wash-Dry-Press" data-price="60">
+<img src="{{ url_for('static', filename='img/press.png') }}">
+<div>Wash-Dry-Press<br><small>₱60/kg</small></div>
+</label>
+<label class="laundry-option">
+<input type="radio" name="laundry_type" value="Press Only" data-price="40">
+<img src="{{ url_for('static', filename='img/iron.png') }}">
+<div>Press Only<br><small>₱40/kg</small></div>
+</label>
+<label class="laundry-option" id="dryCleanOption">
+<input type="radio" name="laundry_type" value="Dry Cleaning" data-price="70">
+<img src="{{ url_for('static', filename='img/special.png') }}">
+<div>Dry Cleaning<br><small>₱70/kg</small></div>
+</label>
+</div>
+<label>Weight (kg):</label>
+<input type="number" name="weight" step="0.1" min="0.5" required>
+<p id="pricePreview">Total: ₱0.00</p>
+<button type="submit" id="submitOrder">Submit Order</button>
+<button type="button" id="updateBtn">Update Order</button>
+<button type="button" id="payBtn" disabled>Pay Order</button>
+</form>
 
-let currentPayRow = null; // track which order is being paid
+<h3>My Laundry Orders</h3>
+<table id="ordersTable">
+<tr><th>ID</th><th>Type</th><th>Weight</th><th>Price</th><th>Pickup</th><th>Status</th><th>Date Created</th></tr>
+{% for o in orders %}
+<tr data-id="{{ o.id }}">
+<td>{{ o.id }}</td>
+<td>{{ o.laundry_type }}</td>
+<td>{{ o.weight_kg }} kg</td>
+<td class="order-price">₱{{ "%.2f"|format(o.price) }}</td>
+<td>{% if o.pickup_requested %}Yes<br><small>Floor {{ o.floor_number }}, Unit {{ o.unit_number }}</small>{% else %}No{% endif %}</td>
+<td class="order-status">{{ o.status }}</td>
+<td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7">No orders yet.</td></tr>
+{% endfor %}
+</table>
+<p class="total-paid" id="totalPaid">Total Paid: ₱0.00</p>
+<a href="{{ url_for('logout') }}" class="logout-box">Logout</a>
+</div>
 
-// Show Payment Modal for individual order
-document.querySelectorAll(".pay-order-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-        currentPayRow = btn.closest("tr");
-        const price = parseFloat(currentPayRow.querySelector(".order-price").textContent.replace('₱',''));
-        modalTotal.textContent = `Total: ₱${price.toFixed(2)}`;
+<!-- Dry Cleaning Modal -->
+<div id="dryCleanModal" class="modal">
+<div class="modal-content">
+<span class="modal-close" id="closeModal">&times;</span>
+<h3>Select Dry Cleaning Items</h3>
+<div id="dryItemsList"></div>
+<button id="addDryItems">OK</button>
+</div>
+</div>
 
-        // Add GCash QR image dynamically
-        const qrExisting = modalContent.querySelector("#gcashQrImg");
-        if(!qrExisting){
-            const qrImg = document.createElement("img");
-            qrImg.src = "{{ url_for('static', filename='img/gcash_qr.png') }}";
-            qrImg.id = "gcashQrImg";
-            qrImg.style.width = "200px";
-            qrImg.style.display = "none";
-            qrImg.style.margin = "10px auto";
-            qrImg.style.display = "block";
-            modalContent.appendChild(qrImg);
-        } else {
-            qrExisting.style.display = "none";
-        }
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal">
+<div class="modal-content">
+<h3>Select Payment Method</h3>
+<p id="modalTotal">Total: ₱0.00</p>
+<button id="cashBtn">Cash</button>
+<button id="gcashBtn">GCash</button>
+</div>
+</div>
 
-        paymentModal.classList.add("show");
+<script>
+// ===== Laundry Type Selection =====
+const laundryOptions = document.querySelectorAll('.laundry-option');
+let selectedType = '';
+laundryOptions.forEach(option => {
+    const input = option.querySelector('input');
+    option.addEventListener('click', ()=>{
+        laundryOptions.forEach(o=>o.classList.remove('selected'));
+        option.classList.add('selected');
+        input.checked = true;
+        selectedType = input.value;
+        updatePrice();
     });
 });
 
-// Pay with Cash
-document.getElementById("cashBtn").addEventListener("click", ()=>{
-    if(currentPayRow){
-        currentPayRow.querySelector(".order-status").textContent = "Paid";
-        updateTotalPaid();
-        alert("Pay cash upon pickup. Thank you!");
-    }
-    paymentModal.classList.remove("show");
+// ===== Dry Cleaning =====
+const dryCleanOption = document.getElementById("dryCleanOption");
+const dryModal = document.getElementById("dryCleanModal");
+const closeModal = document.getElementById("closeModal");
+const dryItemsList = document.getElementById("dryItemsList");
+const addDryItems = document.getElementById("addDryItems");
+let selectedDryItems = [];
+const dryItems = [ ["Barong/Blouse",400],["Bath Robe",350],["Belt",250],["Blazer",350], ["Bolero",270],["Cap/Bonnet/Earmuffs/Facemask",260],["Christening/Baptismal Apparel",500], ["Coat",350],["Dress-Plain",350],["Dress/Gown-beaded/Kimona",1000],["Gloves leather/Mittens/socks",350], ["Gown-Filipiniana/Jusi/Embroidered",1000],["Jacket",350],["Leather Jacket",400], ["Leather Overall/rider's suit",1200],["Leather Pants/skirt",450],["Necktie/Handkerchief",250], ["Overall/Cover-all",500],["Overcoat",500],["Pants/Jeans/Slacks",285], ["Scarf/Shawl/Stola/Lingerie",270],["Shorts/Swimwear",260], ["Skirt",260], ["Sotana/Priest's vestment",350],["Sweater/Cardigan",350],["Toga Robe",350], ["Top - Long Sleeve",285],["Top - Short Sleeve",270],["Top - Sleeveless",250],["Vest",270],["Vestment/Saint clothing/Cape",2000],["Wedding Gown & Trane (w/accessories)",2000] ];
+// render dry items
+let dryHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+dryItems.forEach(([name,price])=>{
+    dryHTML += `<label><span>${name}</span><span>₱${price}</span><input type="checkbox" value="${name}"></label>`;
+});
+dryHTML += '</div>';
+dryItemsList.innerHTML = dryHTML;
+dryCleanOption.addEventListener("click", ()=>{ dryModal.style.display="block"; });
+closeModal.addEventListener("click", ()=>{ dryModal.style.display="none"; });
+addDryItems.addEventListener("click", ()=>{
+    selectedDryItems = [...dryItemsList.querySelectorAll("input:checked")].map(i=>i.value);
+    if(selectedDryItems.length) alert("Added Dry Cleaning Items:\n" + selectedDryItems.join(", "));
+    dryModal.style.display="none";
+    updatePrice();
 });
 
-// Pay with GCash
-document.getElementById("gcashBtn").addEventListener("click", ()=>{
-    const qrImg = document.getElementById("gcashQrImg");
-    if(qrImg) qrImg.style.display = "block";
-    alert("Scan the QR code to pay. Thank you!");
-    if(currentPayRow){
-        currentPayRow.querySelector(".order-status").textContent = "Paid";
-        updateTotalPaid();
+// ===== Pickup Toggle =====
+const pickupCheck = document.getElementById('pickupCheck');
+const pickupDetails = document.getElementById('pickupDetails');
+pickupCheck?.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; updatePrice(); });
+
+// Floor & Room
+const floorSelect = document.getElementById('floorSelect');
+const roomSelect = document.getElementById('roomSelect');
+floorSelect?.addEventListener('change', ()=>{
+    const floor = parseInt(floorSelect.value);
+    roomSelect.innerHTML = '<option value="">Select Room</option>';
+    if(floor){
+        for(let i=1;i<=5;i++){
+            const room = floor*100 + i;
+            const opt = document.createElement('option');
+            opt.value = room;
+            opt.textContent = room;
+            roomSelect.appendChild(opt);
+        }
     }
-    // optionally close modal after a short delay
-    setTimeout(()=>{ paymentModal.classList.remove("show"); }, 2000);
 });
 
-// Update total paid
+// ===== Price Calculation =====
+const weightInput = document.querySelector('input[name="weight"]');
+const pricePreview = document.getElementById('pricePreview');
+const modalTotal = document.getElementById('modalTotal');
+function updatePrice(){
+    let total = 0;
+    const weight = parseFloat(weightInput.value) || 0;
+    const selectedLaundryInput = document.querySelector('input[name="laundry_type"]:checked');
+    if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
+    selectedDryItems.forEach(item=>{
+        const price = dryItems.find(([n])=>n===item)[1];
+        total += price;
+    });
+    if(pickupCheck?.checked) total += 20;
+    pricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
+    if(modalTotal) modalTotal.textContent = `Total: ₱${total.toFixed(2)}`;
+}
+weightInput.addEventListener('input', updatePrice);
+
+// ===== Enable Pay after Submit =====
+const submitOrderBtn = document.getElementById('submitOrder');
+const payBtn = document.getElementById('payBtn');
+submitOrderBtn.addEventListener('click', ()=>{
+    setTimeout(()=>{ payBtn.disabled = false; }, 100); // enable pay button after submit
+});
+
+// ===== Payment Modal =====
+const paymentModal = document.getElementById('paymentModal');
+const cashBtn = document.getElementById("cashBtn");
+const gcashBtn = document.getElementById("gcashBtn");
+const ordersTable = document.getElementById("ordersTable");
+const totalPaidDisplay = document.getElementById("totalPaid");
+
 function updateTotalPaid(){
     let totalPaid = 0;
-    document.querySelectorAll("#ordersTable .order-status").forEach(statusCell=>{
+    document.querySelectorAll("#ordersTable .order-status").forEach((statusCell)=>{
         if(statusCell.textContent.trim() === "Paid"){
             const priceCell = statusCell.parentElement.querySelector(".order-price");
-            totalPaid += parseFloat(priceCell.textContent.replace('₱',''));
+            const priceText = priceCell.textContent.replace('₱','');
+            totalPaid += parseFloat(priceText);
         }
     });
-    document.getElementById("totalPaid").textContent = `Total Paid: ₱${totalPaid.toFixed(2)}`;
+    totalPaidDisplay.textContent = `Total Paid: ₱${totalPaid.toFixed(2)}`;
 }
 
-window.addEventListener('click', e=>{
-    if(e.target==paymentModal) paymentModal.classList.remove('show');
-});
+function payOrders(method){
+    document.querySelectorAll("#ordersTable tr[data-id]").forEach(row=>{
+        const statusCell = row.querySelector(".order-status");
+        if(statusCell.textContent.trim() !== "Paid"){
+            statusCell.textContent = "Paid";
+        }
+    });
+    updateTotalPaid();
+    paymentModal.classList.remove('show');
+    alert(method === "cash" ? "Pay cash upon pickup. Thank you!" : "Scan GCash QR to pay. Thank you!");
+}
+
+payBtn.addEventListener('click', ()=> paymentModal.classList.add('show'));
+cashBtn.addEventListener('click', ()=> payOrders("cash"));
+gcashBtn.addEventListener('click', ()=> payOrders("gcash"));
+
+window.addEventListener('click', e=>{ if(e.target==paymentModal) paymentModal.classList.remove('show'); });
+</script>
+</body>
+</html>
 
 
 
