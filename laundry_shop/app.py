@@ -21,7 +21,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# --- DATABASE MODELS ---
+# DATABASE MODELS 
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
@@ -435,6 +435,7 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
