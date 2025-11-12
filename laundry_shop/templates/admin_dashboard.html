@@ -1,192 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin Dashboard | Laundry Shop</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #2c3e50;
-      color: white;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    h1 { margin: 0; font-size: 22px; }
-    a.logout {
-      background: #e74c3c;
-      color: white;
-      padding: 6px 12px;
-      text-decoration: none;
-      border-radius: 4px;
-    }
-    .container {
-      padding: 20px;
-    }
-    .summary {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 25px;
-    }
-    .card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      flex: 1;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    .card h2 {
-      margin: 0;
-      color: #3498db;
-    }
-    .section {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: center;
-    }
-    th {
-      background: #3498db;
-      color: white;
-    }
-    button, .delete-btn {
-      background: #27ae60;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover { background: #219150; }
-    .delete-btn {
-      background: #e74c3c;
-    }
-    .delete-btn:hover {
-      background: #c0392b;
-    }
-    select, input[type=text], input[type=number] {
-      padding: 5px;
-    }
-  </style>
+ <style>
+body { 
+    font-family: 'Segoe UI', Arial, sans-serif; 
+    background: url("{{ url_for('static', filename='img/laundry_admin_bg.png') }}") no-repeat center center fixed; 
+    background-size: cover; 
+    margin:0; 
+    padding:0; 
+    color: #333;
+    min-height: 100vh;
+}
 
- <script>
-  // --- Smooth custom modal ---
-  function showModal(message, onConfirm) {
-    const modal = document.createElement("div");
-    modal.innerHTML = `
-      <div id="confirmModal" style="
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.5);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999;
-      ">
-        <div style="
-          background: white;
-          padding: 25px 30px;
-          border-radius: 12px;
-          width: 340px;
-          text-align: center;
-          box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-          animation: fadeIn 0.25s ease;
-        ">
-          <h3 style="color: #e67e22; margin: 0 0 10px 0;">⚠️ Confirmation</h3>
-          <p style="color: #333; font-size: 15px; margin-bottom: 20px;">${message}</p>
-          <div style="display:flex; justify-content:center; gap:10px;">
-            <button id="cancelBtn" style="
-              background: #ccc;
-              color: black;
-              border: none;
-              padding: 7px 15px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-weight: bold;
-            ">Cancel</button>
-            <button id="confirmBtn" style="
-              background: #007bff;
-              color: white;
-              border: none;
-              padding: 7px 15px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-weight: bold;
-            ">Confirm</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+header { 
+    background:#2c3e50; 
+    color:#fff; 
+    padding:15px 30px; 
+    display:flex; 
+    justify-content:space-between; 
+    align-items:center; 
+}
 
-    document.getElementById("cancelBtn").addEventListener("click", () => modal.remove());
-    document.getElementById("confirmBtn").addEventListener("click", () => {
-      modal.remove();
-      if (typeof onConfirm === "function") onConfirm();
-    });
-  }
+h1 { margin:0; font-size:22px; }
 
-  // --- Confirm Delete Order ---
-  function confirmDeleteOrder(id) {
-    showModal("Are you sure you want to delete this order? This action cannot be undone.", () => {
-      window.location.href = "/delete_order/" + id;
-    });
-  }
+a.logout { background:#e74c3c; color:#fff; padding:6px 12px; text-decoration:none; border-radius:4px; }
+a.logout:hover { background:#c0392b; }
 
-  // --- Confirm Delete User (if used) ---
-  function confirmDeleteUser(id) {
-    showModal("Are you sure you want to delete this user and all their orders?", () => {
-      window.location.href = "/delete_user/" + id;
-    });
-  }
+.container { padding:20px; max-width:1200px; margin:0 auto; }
 
-  // --- Confirm Status Update (optional enhancement) ---
-  function confirmStatusChange(form, newStatus) {
-    const msg = `Change this order's status to <b>${newStatus}</b>?`;
-    showModal(msg, () => form.submit());
-  }
+/* Summary Cards */
+.summary { display:flex; gap:20px; margin-bottom:25px; flex-wrap:wrap; }
+.card { background:#fff; padding:15px; border-radius:8px; flex:1 1 200px; box-shadow:0 2px 5px rgba(0,0,0,0.1); text-align:center; min-width:200px; cursor:default; }
+.card.clickable { cursor:pointer; }
+.card h2 { margin:0; color:#3498db; }
+.card p { margin:6px 0 0 0; color:#333; }
 
-  // Attach to update buttons automatically
-  document.querySelectorAll('form[action^="/update_status"]').forEach(form => {
-    const select = form.querySelector("select");
-    const button = form.querySelector("button");
-    if (select && button) {
-      button.addEventListener("click", function (e) {
-        e.preventDefault();
-        const newStatus = select.value;
-        confirmStatusChange(form, newStatus);
-      });
-    }
-  });
-</script>
+/* Sections & Tables */
+.section { background:#fff; padding:20px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { padding:10px; border:1px solid #ddd; text-align:center; font-size:14px; vertical-align:middle; }
+th { background:#3498db; color:#fff; }
+td { background:#fff; }
 
-<style>
-  @keyframes fadeIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
+/* Buttons */
+.btn { background:#27ae60; color:#fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; transition:0.15s; }
+.btn:hover{ transform:translateY(-1px); }
+.btn-accept { background:#2980b9; }
+.btn-delete { background:#e74c3c; }
+.btn-small { padding:4px 8px; font-size:13px; }
+
+select, input[type=text], input[type=number] { padding:5px; border-radius:4px; border:1px solid #ccc; }
+
+/* Status Tags */
+.status { padding:4px 8px; border-radius:6px; color:#fff; font-weight:bold; font-size:13px; display:inline-block; min-width:68px; }
+.Pending { background:#f39c12; }
+.Washing { background:#3498db; }
+.Drying { background:#9b59b6; }
+.Ready { background:#2ecc71; }
+.Claimed { background:#16a085; }
+
+/* Modal */
+.modal-backdrop { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.modal { background:#fff; border-radius:10px; padding:20px; width:90%; max-width:560px; box-shadow:0 8px 30px rgba(0,0,0,0.2); }
+.modal h3 { margin:0 0 10px 0; color:#333; }
+.modal .modal-body { max-height:60vh; overflow:auto; margin-top:8px; }
+
+@media (max-width:768px) { table{ font-size:12px; } .summary { flex-direction:column; } }
 </style>
-
 </head>
 <body>
-
 <header>
   <h1>Admin Dashboard</h1>
   <a href="/logout" class="logout">Logout</a>
@@ -197,122 +82,612 @@
   <!-- Summary Cards -->
   <div class="summary">
     <div class="card">
-      <h2>{{ total_orders or 0 }}</h2>
+      <h2 id="card-total-orders">{{ total_orders or 0 }}</h2>
       <p>Total Orders</p>
     </div>
+
+    <!-- This is clickable to open monthly income modal -->
+   <div class="card clickable" id="card-income" title="Click to view monthly income breakdown">
+  <h2>₱<span id="card-total-income">{{ "{:,.2f}".format(total_income if total_income else 0) }}</span></h2>
+  <p>Total Income (click to view by month)</p>
+</div>
+
     <div class="card">
-      <h2>₱{{ "{:,.2f}".format(total_income if total_income else 0) }}</h2>
-      <p>Total Income</p>
-    </div>
-    <div class="card">
-      <h2>{{ users|length or 0 }}</h2>
+      <h2 id="card-total-users">{{ users|length or 0 }}</h2>
       <p>Total Customers</p>
     </div>
   </div>
 
-  <!-- Pending Orders per User -->
-  <div class="section">
+  <!-- Pending Orders -->
+  <div class="section" id="pending-section">
     <h3>Pending Orders per User</h3>
+
+    <!-- We'll rely on template to render user blocks, but JS will update DOM dynamically after actions -->
     {% for u in users %}
-      <h4>{{ u.username }}</h4>
-      {% set pending_orders = u.laundry_orders | selectattr('status', 'equalto', 'Pending') | list %}
-      {% if pending_orders %}
-        <table>
-          <tr>
-            <th>Order ID</th>
-            <th>Type</th>
-            <th>Weight</th>
-            <th>Price</th>
-            <th>Pickup</th>
-            <th>Location</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
-          {% for o in pending_orders %}
-            <tr>
-              <td>{{ o.id }}</td>
-              <td>{{ o.laundry_type or 'N/A' }}</td>
-              <td>{{ o.weight_kg or 0 }} kg</td>
-              <td>₱{{ "{:,.2f}".format(o.price if o.price else 0) }}</td>
-              <td>{{ 'Yes' if o.pickup_requested else 'No' }}</td>
-              <td>
-                {% if o.pickup_requested %}
-                  Floor {{ o.floor_number or '-' }}, Unit {{ o.unit_number or '-' }}
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-              <td>{{ o.status or 'Pending' }}</td>
-              <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') if o.date_created else 'N/A' }}</td>
-              <td>
-                <!-- Accept = Change to Washing -->
-                <form method="POST" action="/update_status/{{ o.id }}" style="display:inline;">
-                  <input type="hidden" name="status" value="Washing">
-                  <button type="submit" style="background:#2980b9;">Accept</button>
-                </form>
-                <button class="delete-btn" onclick="confirmDeleteOrder({{ o.id }})">Delete</button>
-              </td>
-            </tr>
-          {% endfor %}
-        </table>
-      {% else %}
-        <p style="margin-left:20px; color:#555;">No pending orders.</p>
-      {% endif %}
+      <div class="user-block" data-username="{{ u.username | e }}">
+        <h4 style="margin-bottom:6px;">{{ u.username }}</h4>
+
+        {% set pending_orders = u.laundry_orders | selectattr('status', 'equalto', 'Pending') | list %}
+        <div class="pending-area">
+          {% if pending_orders %}
+            <table class="pending-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Type</th><th>Weight (kg)</th><th>Price</th><th>Pickup</th><th>Location</th><th>Status</th><th>Date</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for o in pending_orders %}
+                <tr data-order-id="{{ o.id }}" data-username="{{ u.username | e }}">
+                  <td class="col-id">{{ o.id }}</td>
+                  <td>{{ o.laundry_type }}</td>
+                  <td>{{ o.weight_kg or 0 }}</td>
+                  <td>₱{{ "{:,.2f}".format(o.price if o.price else 0) }}</td>
+                  <td>{{ 'Yes' if o.pickup_requested else 'No' }}</td>
+                  <td>
+                    {% if o.pickup_requested %}
+                      Floor {{ o.floor_number or '-' }}, Unit {{ o.unit_number or '-' }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td><span class="status {{ o.status }}">{{ o.status }}</span></td>
+                  <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') if o.date_created else 'N/A' }}</td>
+                  <td>
+                    <!-- Accept button triggers AJAX status update to Washing. -->
+                    <button class="btn btn-accept btn-small accept-btn" data-id="{{ o.id }}" data-new-status="Washing">Accept</button>
+                    <button class="btn btn-delete btn-small delete-btn" data-id="{{ o.id }}">Delete</button>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="no-pending" style="margin-left:20px;color:#555;">No pending orders.</p>
+          {% endif %}
+        </div>
+      </div>
+      <hr style="margin:16px 0;">
     {% endfor %}
   </div>
 
   <!-- All Orders -->
-  <div class="section">
+  <div class="section" id="all-orders-section">
     <h3>All Orders</h3>
-    <table>
-      <tr>
-        <th>ID</th>
-        <th>Customer</th>
-        <th>Type</th>
-        <th>Weight</th>
-        <th>Price</th>
-        <th>Pickup</th>
-        <th>Location</th>
-        <th>Status</th>
-        <th>Date Created</th>
-        <th>Action</th>
-      </tr>
-      {% for o in orders %}
-      <tr>
-        <td>{{ o.id }}</td>
-        <td>{{ o.user.username if o.user else 'Unknown' }}</td>
-        <td>{{ o.laundry_type or 'N/A' }}</td>
-        <td>{{ o.weight_kg or 0 }} kg</td>
-        <td>₱{{ "{:,.2f}".format(o.price if o.price else 0) }}</td>
-        <td>{{ 'Yes' if o.pickup_requested else 'No' }}</td>
-        <td>
-          {% if o.pickup_requested %}
-            Floor {{ o.floor_number or '-' }}, Unit {{ o.unit_number or '-' }}
-          {% else %}
-            —
-          {% endif %}
-        </td>
-        <td>{{ o.status or 'Pending' }}</td>
-        <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') if o.date_created else 'N/A' }}</td>
-        <td>
-          <form method="POST" action="/update_status/{{ o.id }}" style="display:inline;">
-            <select name="status">
-              <option {% if o.status == 'Pending' %}selected{% endif %}>Pending</option>
-              <option {% if o.status == 'Washing' %}selected{% endif %}>Washing</option>
-              <option {% if o.status == 'Drying' %}selected{% endif %}>Drying</option>
-              <option {% if o.status == 'Ready' %}selected{% endif %}>Ready</option>
-              <option {% if o.status == 'Claimed' %}selected{% endif %}>Claimed</option>
-            </select>
-            <button type="submit">Update</button>
-          </form>
-          <button class="delete-btn" onclick="confirmDeleteOrder({{ o.id }})">Delete</button>
-        </td>
-      </tr>
-      {% endfor %}
+    <table id="all-orders-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Customer</th><th>Type</th><th>Weight</th><th>Price</th><th>Pickup</th><th>Location</th><th>Status</th><th>Date Created</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr data-order-id="{{ o.id }}">
+          <td>{{ o.id }}</td>
+          <td>{{ o.user.username if o.user else 'Unknown' }}</td>
+          <td>{{ o.laundry_type or 'N/A' }}</td>
+          <td>{{ o.weight_kg or 0 }} kg</td>
+          <td>₱{{ "{:,.2f}".format(o.price if o.price else 0) }}</td>
+          <td>{{ 'Yes' if o.pickup_requested else 'No' }}</td>
+          <td>
+            {% if o.pickup_requested %}
+              Floor {{ o.floor_number or '-' }}, Unit {{ o.unit_number or '-' }}
+            {% else %}—{% endif %}
+          </td>
+          <td><span class="status {{ o.status }}">{{ o.status }}</span></td>
+          <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') if o.date_created else 'N/A' }}</td>
+          <td>
+            <form class="status-form" data-id="{{ o.id }}" style="display:inline;">
+              <select name="status" class="status-select">
+                <option value="Pending" {% if o.status == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Washing" {% if o.status == 'Washing' %}selected{% endif %}>Washing</option>
+                <option value="Drying" {% if o.status == 'Drying' %}selected{% endif %}>Drying</option>
+                <option value="Ready" {% if o.status == 'Ready' %}selected{% endif %}>Ready</option>
+                <option value="Claimed" {% if o.status == 'Claimed' %}selected{% endif %}>Claimed</option>
+              </select>
+              <button class="btn btn-small update-btn" type="submit">Update</button>
+            </form>
+            <button class="btn btn-delete btn-small delete-btn" data-id="{{ o.id }}">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
   </div>
-
 </div>
+
+<!-- Income Modal -->
+<div id="income-modal-backdrop" style="display:none;">
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>Income by Month</h3>
+      <div class="modal-body" id="income-modal-body">
+        <!-- Filled by JS -->
+        <p>Loading...</p>
+      </div>
+      <div style="margin-top:12px; text-align:right;">
+        <button class="btn" id="income-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  Frontend behavior notes:
+  - Uses Fetch API to call backend endpoints that return JSON.
+  - Expects these endpoints (implement them in Flask):
+    POST  /api/update_status/<id>    body JSON { status: "Washing" }  -> returns { success: true, order: {...} }
+    DELETE /api/delete_order/<id>    -> returns { success: true }
+    GET    /api/income_by_month      -> returns { success: true, months: [ { month: "YYYY-MM", total: 1234.5 }, ... ] }
+*/
+
+function qs(selector, root=document) { return root.querySelector(selector); }
+function qsa(selector, root=document) { return Array.from(root.querySelectorAll(selector)); }
+
+/* Utility to show temporary toast-like message */
+function toast(msg, time=2000) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  Object.assign(el.style, { position:'fixed', right:'20px', bottom:'20px', background:'#333', color:'#fff', padding:'10px 14px', borderRadius:'8px', zIndex:99999, opacity:0, transition:'0.2s' });
+  document.body.appendChild(el);
+  requestAnimationFrame(()=> el.style.opacity = 1);
+  setTimeout(()=> { el.style.opacity = 0; setTimeout(()=> el.remove(), 220); }, time);
+}
+
+/* Update the UI for a single order row when status changes (All Orders table) */
+function updateAllOrdersRow(order) {
+  const tr = document.querySelector(`#all-orders-table tr[data-order-id="${order.id}"]`);
+  if (!tr) return;
+  // update status label
+  const statusSpan = tr.querySelector('.status');
+  statusSpan.textContent = order.status;
+  // update class names to reflect new status
+  statusSpan.className = 'status ' + order.status;
+  // update price, date if provided
+  const tds = tr.querySelectorAll('td');
+  // assume column mapping: 0:id,1:customer,2:type,3:weight,4:price,5:pickup,6:location,7:status,8:date
+  if (order.price !== undefined) tds[4].textContent = '₱' + Number(order.price).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+  if (order.date_created) tds[8].textContent = order.date_created;
+}
+
+/* Remove a pending row (from pending section) after acceptance/delete */
+function removePendingRow(orderId) {
+  const row = document.querySelector(`.pending-table tr[data-order-id="${orderId}"]`);
+  if (row) {
+    const tbody = row.parentElement;
+    row.remove();
+    // if tbody now empty, replace with "No pending orders."
+    const table = tbody.closest('table');
+    if (tbody.children.length === 0) {
+      const pendingArea = table.closest('.pending-area');
+      pendingArea.innerHTML = '<p class="no-pending" style="margin-left:20px;color:#555;">No pending orders.</p>';
+    }
+  } else {
+    // maybe it was the only row but already converted to no-pending; nothing to do
+  }
+}
+
+/* Handle Accept / Update from Pending area */
+document.addEventListener('click', async (e) => {
+  // Accept button in pending
+  if (e.target.matches('.accept-btn')) {
+    const id = e.target.dataset.id;
+    if (!id) return;
+
+    // Centered confirmation popup
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000
+    });
+
+    const popup = document.createElement('div');
+    Object.assign(popup.style, {
+      background: '#fff',
+      padding: '20px 30px',
+      borderRadius: '10px',
+      textAlign: 'center',
+      maxWidth: '400px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      fontSize: '16px'
+    });
+
+    popup.innerHTML = `
+      <p>Are you sure you want to accept/update order #${id}?</p>
+      <div style="margin-top:15px;">
+        <button id="confirm-accept" style="margin-right:10px;padding:8px 16px;">Yes</button>
+        <button id="cancel-accept" style="padding:8px 16px;">Cancel</button>
+      </div>
+    `;
+
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Confirm action
+    qs('#confirm-accept', overlay).addEventListener('click', async () => {
+      try {
+        const resp = await fetch(`/api/accept_order/${id}`, { method: 'POST' });
+        const data = await resp.json();
+        if (data && data.success) {
+          removePendingRow(id); // remove from pending
+          toast('Order accepted/updated');
+          refreshTotals();
+        } else {
+          toast('Action failed');
+        }
+      } catch (err) {
+        console.error(err);
+        toast('Server error');
+      } finally {
+        overlay.remove();
+      }
+    });
+
+    // Cancel action
+    qs('#cancel-accept', overlay).addEventListener('click', () => {
+      overlay.remove();
+    });
+  } // <-- closes if (e.target.matches('.accept-btn'))
+}); // <-- closes document.addEventListener
+
+/* Handle Update in All Orders table (status dropdown) */
+document.addEventListener('submit', async (e) => {
+  if (e.target.matches('.status-form')) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    const select = e.target.querySelector('.status-select');
+    const newStatus = select.value;
+    try {
+      const resp = await fetch(`/api/update_status/${id}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await resp.json();
+      if (data && data.success) {
+        toast('Status updated');
+        if (data.order) updateAllOrdersRow(data.order);
+        // If status changed to not Pending and it existed in a pending table, remove it
+        if (newStatus !== 'Pending') removePendingRow(id);
+      } else {
+        toast('Update failed');
+      }
+    } catch (err) {
+      toast('Server error');
+      console.error(err);
+    }
+  }
+});
+
+/* Helper to insert an order row into All Orders table when Accepting from Pending creates a new row */
+function insertOrderIntoAllOrders(order) {
+  const tbody = qs('#all-orders-table tbody');
+  if (!tbody) return;
+  // build a row consistent with template columns
+  const tr = document.createElement('tr');
+  tr.dataset.orderId = order.id;
+  tr.innerHTML = `
+    <td>${order.id}</td>
+    <td>${order.customer || 'Unknown'}</td>
+    <td>${order.type || 'N/A'}</td>
+    <td>${order.weight || 0} kg</td>
+    <td>₱${Number(order.price || 0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+    <td>${order.pickup ? 'Yes' : 'No'}</td>
+    <td>${order.location || '—'}</td>
+    <td><span class="status ${order.status}">${order.status}</span></td>
+    <td>${order.date_created || 'N/A'}</td>
+    <td>
+      <form class="status-form" data-id="${order.id}" style="display:inline;">
+        <select name="status" class="status-select">
+          <option value="Pending"${order.status==='Pending'?' selected':''}>Pending</option>
+          <option value="Washing"${order.status==='Washing'?' selected':''}>Washing</option>
+          <option value="Drying"${order.status==='Drying'?' selected':''}>Drying</option>
+          <option value="Ready"${order.status==='Ready'?' selected':''}>Ready</option>
+          <option value="Claimed"${order.status==='Claimed'?' selected':''}>Claimed</option>
+        </select>
+        <button class="btn btn-small update-btn" type="submit">Update</button>
+      </form>
+      <button class="btn btn-delete btn-small delete-btn" data-id="${order.id}">Delete</button>
+    </td>
+  `;
+  // insert at top
+  tbody.prepend(tr);
+}
+
+/* --- Utility: query selector shortcut --- */
+function qs(sel) { return document.querySelector(sel); }
+
+/* Refresh totals on page (counts & income). */
+function refreshTotals() {
+  const totalOrders = document.querySelectorAll('#all-orders-table tbody tr').length;
+  qs('#card-total-orders').textContent = totalOrders;
+
+  if (window.totalIncomeBackend === undefined) {
+    const txt = qs('#card-total-income').textContent.replace(/[^0-9.-]+/g,'');
+    window.totalIncomeBackend = parseFloat(txt) || 0;
+  }
+
+  qs('#card-total-income').textContent = Number(window.totalIncomeBackend).toLocaleString(undefined,{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+/* --- Show centered confirm modal --- */
+function showConfirm(message) {
+  return new Promise(resolve => {
+    const backdrop = document.createElement('div');
+    Object.assign(backdrop.style, {
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 99999
+    });
+
+    const modal = document.createElement('div');
+    Object.assign(modal.style, {
+      background: '#fff',
+      color: '#333',
+      padding: '20px 30px',
+      borderRadius: '10px',
+      maxWidth: '400px',
+      textAlign: 'center',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    });
+
+    const msg = document.createElement('p');
+    msg.textContent = message;
+
+    const btnYes = document.createElement('button');
+    btnYes.textContent = 'Yes';
+    Object.assign(btnYes.style, {
+      margin: '10px', padding: '6px 14px', borderRadius: '5px',
+      border: 'none', cursor: 'pointer', background: '#27ae60', color: '#fff'
+    });
+
+    const btnNo = document.createElement('button');
+    btnNo.textContent = 'No';
+    Object.assign(btnNo.style, {
+      margin: '10px', padding: '6px 14px', borderRadius: '5px',
+      border: 'none', cursor: 'pointer', background: '#c0392b', color: '#fff'
+    });
+
+    btnYes.addEventListener('click', () => {
+      document.body.removeChild(backdrop);
+      resolve(true);
+    });
+    btnNo.addEventListener('click', () => {
+      document.body.removeChild(backdrop);
+      resolve(false);
+    });
+
+    modal.appendChild(msg);
+    modal.appendChild(btnYes);
+    modal.appendChild(btnNo);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+  });
+}
+
+/* --- Delete button in All Orders / Pending --- */
+document.addEventListener('click', async (e) => {
+  if (!e.target.matches('.delete-btn')) return;
+
+  const id = e.target.dataset.id;
+  if (!id) return;
+
+  const ok = await showConfirm(`Are you sure you want to delete order #${id}?`);
+  if (!ok) return;
+
+  try {
+    const resp = await fetch(`/api/delete_order/${id}`, { method: 'DELETE' });
+    const data = await resp.json();
+
+    if (data && data.success) {
+      if (typeof removePendingRow === 'function') removePendingRow(id);
+      const tr = document.querySelector(`#all-orders-table tr[data-order-id="${id}"]`);
+      if (tr) tr.remove();
+      if (typeof toast === 'function') toast('Order deleted');
+      refreshTotals();
+    } else {
+      if (typeof toast === 'function') toast(data.error || 'Delete failed');
+    }
+  } catch (err) {
+    console.error(err);
+    if (typeof toast === 'function') toast('Server error');
+  }
+});
+
+/* --- Load income modal content --- */
+async function loadIncomeModal() {
+  const body = qs('#income-modal-body');
+  body.innerHTML = '<p>Loading income summary…</p>';
+
+  try {
+    const resp = await fetch('/api/income_by_month');
+    const data = await resp.json();
+
+    const weekResp = await fetch('/api/income_by_week');
+    const weekData = await weekResp.json();
+
+    let html = '';
+
+    // --- Monthly Income ---
+    if (data.months.length === 0) {
+      html += '<p>No monthly income records.</p>';
+    } else {
+      html += '<h4 style="margin-top:0;">Monthly Income</h4>';
+      html += '<table style="width:100%;border-collapse:collapse;margin-bottom:15px;">';
+      html += '<thead><tr><th>Month</th><th>Total</th><th>Action</th></tr></thead><tbody>';
+      data.months.forEach(m => {
+        html += `<tr>
+          <td>${m.month}</td>
+          <td>₱${Number(m.total || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          <td><button class="delete-income" data-type="month" data-month="${m.month}">Delete</button></td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+    }
+
+    // --- Weekly Income ---
+    if (weekData.success && weekData.weeks.length > 0) {
+      html += '<h4>Weekly Income (Mon → Sun)</h4>';
+      weekData.weeks.forEach((week, i) => {
+        html += `<h5>Week ${i + 1}</h5>`;
+        html += '<table style="width:100%;border-collapse:collapse;margin-bottom:15px;">';
+        html += '<thead><tr><th>Day</th><th>Total</th></tr></thead><tbody>';
+        week.forEach(day => {
+          html += `<tr>
+            <td>${day.date}</td>
+            <td>₱${Number(day.total || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+      });
+    }
+
+    body.innerHTML = html;
+
+  } catch (err) {
+    body.innerHTML = '<p>Server error while loading income.</p>';
+    console.error(err);
+  }
+}
+
+/* --- Open income modal --- */
+qs('#card-income').addEventListener('click', () => {
+  qs('#income-modal-backdrop').style.display = 'block';
+  loadIncomeModal();
+});
+
+/* --- Close income modal --- */
+qs('#income-close-btn').addEventListener('click', () => {
+  qs('#income-modal-backdrop').style.display = 'none';
+});
+
+// Delegate click for monthly income delete buttons only
+qs('#income-modal-body').addEventListener('click', async e => {
+  if (!e.target.matches('.delete-income')) return;
+
+  const monthText = e.target.dataset.month; // e.g., "November 2025"
+  if (!monthText) return;
+
+  const ok = await showConfirm(`Delete all income for month: ${monthText}?`);
+  if (!ok) return;
+
+  try {
+    // Convert "November 2025" to "YYYY-MM"
+    const [monthName, year] = monthText.split(' ');
+    const monthNumber = new Date(`${monthName} 1, ${year}`).getMonth() + 1;
+    const monthStr = `${year}-${monthNumber.toString().padStart(2,'0')}`; // "2025-11"
+
+    const res = await fetch('/api/delete_income_month', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: monthStr })
+    });
+    const data = await res.json();
+
+    // Create centered popup
+    const popup = document.createElement('div');
+    Object.assign(popup.style, {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: data.success ? '#333' : '#c0392b',
+      color: '#fff',
+      padding: '16px 24px',
+      borderRadius: '10px',
+      zIndex: 99999,
+      textAlign: 'center',
+      fontSize: '16px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    });
+    popup.textContent = data.success 
+        ? `Deleted ${data.deleted} entries for ${monthText}` 
+        : data.error || 'Failed to delete month income';
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 2500);
+
+    if (data.success) {
+      const incomeSpan = qs('#card-total-income');
+      if (incomeSpan) {
+        incomeSpan.textContent = Number(data.total_income || 0).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+      loadIncomeModal();
+    }
+
+  } catch (err) {
+    console.error(err);
+    const popup = document.createElement('div');
+    Object.assign(popup.style, {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: '#c0392b',
+      color: '#fff',
+      padding: '16px 24px',
+      borderRadius: '10px',
+      zIndex: 99999,
+      textAlign: 'center',
+      fontSize: '16px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    });
+    popup.textContent = 'Server error while deleting month income';
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+  }
+});
+
+
+/* --- Initialization after DOM loaded --- */
+window.addEventListener('DOMContentLoaded', () => {
+  // Ensure pending-area blocks show "No pending" text if empty
+  document.querySelectorAll('.user-block').forEach(block => {
+    const area = block.querySelector('.pending-area');
+    if (!area) return;
+    const table = area.querySelector('table');
+    if (!table || !table.querySelector('tbody') || table.querySelector('tbody').children.length === 0) {
+      area.innerHTML = '<p class="no-pending" style="margin-left:20px;color:#555;">No pending orders.</p>';
+    }
+  });
+
+  // Refresh totals initially
+  refreshTotals();
+});
+  // Logout button
+qs('#logout-btn').addEventListener('click', async (e) => {
+  e.preventDefault(); // stop default navigation
+  try {
+    const resp = await fetch('/logout', { method: 'POST' });
+    if (resp.ok) {
+      // redirect to login page
+      window.location.href = '/login';
+    } else {
+      alert('Logout failed');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Server error during logout');
+  }
+});
+
+</script>
 </body>
 </html>
+
