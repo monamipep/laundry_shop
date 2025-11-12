@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask import redirect, url_for, session, flash
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from flask import jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import pymysql
 import os
+import calendar
 
 # --- Flask app ---
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
@@ -275,48 +277,30 @@ def api_delete_order(order_id):
     try:
         db.session.delete(order)
         db.session.commit()
-        # note: we DO NOT remove income entries here (income is persistent)
         return jsonify({'success': True})
     except Exception as e:
-        print("🔥 Delete Error:", e)
+        print("🔥 Delete Order Error:", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Server error'}), 500
 
 
-# --- DELETE ORDER (form POST) ---
-@app.route('/delete_order/<int:order_id>', methods=['POST'])
-def delete_order(order_id):
-    order = LaundryOrder.query.get(order_id)
-    if not order:
-        flash("Order not found!", "danger")
-        return redirect(url_for('admin_dashboard'))
 
-    try:
-        db.session.delete(order)
-        db.session.commit()
-        # income stays — we intentionally do not touch Income rows
-        flash("Order deleted successfully!", "info")
-    except Exception as e:
-        print("🔥 Delete (form) Error:", e)
-        db.session.rollback()
-        flash("Could not delete order (server error).", "danger")
-    return redirect(url_for('admin_dashboard'))
-
-
-# --- INCOME BY MONTH & DAY (from Income table) ---
+# --- INCOME BY MONTH & DAY ---
 @app.route('/api/income_by_month')
 def api_income_by_month():
     try:
         from collections import defaultdict
+        from datetime import datetime
         import calendar
 
-        # read from Income table
         incomes = Income.query.order_by(Income.date.desc()).all()
         monthly = defaultdict(float)
         daily = defaultdict(float)
         overall_total = 0.0
 
         for inc in incomes:
+            if not inc.date:
+                continue
             total = float(inc.total or 0.0)
             overall_total += total
             month_label = f"{calendar.month_name[inc.date.month]} {inc.date.year}"
@@ -324,11 +308,13 @@ def api_income_by_month():
             day_label = inc.date.strftime("%B %d, %Y")
             daily[day_label] += total
 
-        # sort months descending
         def month_sort_key(m):
             parts = m.split()
-            mon = list(calendar.month_name).index(parts[0]) if parts else 0
-            yr = int(parts[1]) if len(parts) > 1 else 0
+            try:
+                mon = list(calendar.month_name).index(parts[0])
+                yr = int(parts[1])
+            except:
+                mon, yr = 0, 0
             return (yr, mon)
 
         month_items = sorted(monthly.items(), key=lambda kv: month_sort_key(kv[0]), reverse=True)
@@ -343,6 +329,7 @@ def api_income_by_month():
             "days": days_list,
             "overall_total": overall_total
         })
+
     except Exception as e:
         print("🔥 Income Error:", e)
         return jsonify({"success": False, "error": "Server error"}), 500
@@ -352,7 +339,6 @@ def api_income_by_month():
 @app.route('/api/income_by_week')
 def api_income_by_week():
     try:
-        from collections import defaultdict
         from datetime import timedelta, datetime
 
         incomes = Income.query.order_by(Income.date).all()
@@ -364,7 +350,6 @@ def api_income_by_week():
         min_date = min(daily_map.keys())
         max_date = max(daily_map.keys())
 
-        # adjust to full weeks (Monday → Sunday)
         min_monday = min_date - timedelta(days=min_date.weekday())
         max_sunday = max_date + timedelta(days=(6 - max_date.weekday()))
 
@@ -382,107 +367,51 @@ def api_income_by_week():
             current += timedelta(days=7)
 
         return jsonify({"success": True, "weeks": weeks})
+
     except Exception as e:
         print("🔥 Weekly Income Error:", e)
         return jsonify({"success": False, "error": "Server error"}), 500
 
 
-# --- DELETE MONTH INCOME ---
+# --- DELETE MONTHLY INCOME ---
 @app.route('/api/delete_income_month', methods=['POST'])
 def delete_income_month():
     try:
         payload = request.get_json(force=True)
-        month_label = payload.get('month')
-        if not month_label:
+        month_str = payload.get('month')  # expected format: "YYYY-MM"
+        if not month_str:
             return jsonify(success=False, error="No month provided"), 400
 
-        import calendar
-        parts = month_label.split()
-        if len(parts) != 2:
-            return jsonify(success=False, error="Invalid month format"), 400
-        month_num = list(calendar.month_name).index(parts[0])
-        year = int(parts[1])
+        from datetime import datetime, date
+        year, month = map(int, month_str.split('-'))
 
-        # delete rows
-        rows = Income.query.filter(db.extract('year', Income.date) == year,
-                                   db.extract('month', Income.date) == month_num).all()
+        # Compute start and end of month
+        start_date = date(year, month, 1)
+        if month == 12:
+            end_date = date(year + 1, 1, 1)
+        else:
+            end_date = date(year, month + 1, 1)
+
+        # Query incomes in that month
+        rows = Income.query.filter(Income.date >= start_date, Income.date < end_date).all()
         deleted = 0
         for r in rows:
             db.session.delete(r)
             deleted += 1
         db.session.commit()
 
-        # recalc total income
-        total_income = db.session.query(db.func.sum(Income.amount)).scalar() or 0
+        # Update total income
+        total_income = db.session.query(db.func.sum(Income.total)).scalar() or 0
 
         return jsonify(success=True, deleted=deleted, total_income=total_income)
+
     except Exception as e:
         print("🔥 Delete month income error:", e)
         db.session.rollback()
         return jsonify(success=False, error="Server error"), 500
 
-# --- DELETE DAILY INCOME ---
-@app.route('/api/delete_income_day', methods=['POST'])
-def delete_income_day():
-    try:
-        payload = request.get_json(force=True)
-        day_label = payload.get('day')
-        if not day_label:
-            return jsonify(success=False, error="No day provided"), 400
-
-        from datetime import datetime as _dt
-        target_date = _dt.strptime(day_label, "%A %b %d, %Y").date()  # match weekly API format
-
-        # delete rows
-        rows = Income.query.filter_by(date=target_date).all()
-        deleted = 0
-        for r in rows:
-            db.session.delete(r)
-            deleted += 1
-        db.session.commit()
-
-        # recalc total income
-        total_income = db.session.query(db.func.sum(Income.amount)).scalar() or 0
-
-        return jsonify(success=True, deleted=deleted, total_income=total_income)
-    except Exception as e:
-        print("🔥 Delete day income error:", e)
-        db.session.rollback()
-        return jsonify(success=False, error="Server error"), 500
 
 
-# --- DELETE WEEKLY INCOME (triggered from "daily" button) ---
-@app.route('/api/delete_income_week', methods=['POST'])
-def delete_income_week():
-    try:
-        payload = request.get_json(force=True)
-        day_label = payload.get('day')
-        if not day_label:
-            return jsonify(success=False, error="No day provided"), 400
-
-        from datetime import datetime, timedelta
-
-        # Parse the day
-        target_date = datetime.strptime(day_label, "%A %b %d, %Y").date()
-
-        # Calculate the Monday and Sunday of that week
-        start_of_week = target_date - timedelta(days=target_date.weekday())  # Monday
-        end_of_week = start_of_week + timedelta(days=6)  # Sunday
-
-        # Delete all Income entries within that week
-        rows = Income.query.filter(Income.date >= start_of_week, Income.date <= end_of_week).all()
-        deleted = 0
-        for r in rows:
-            db.session.delete(r)
-            deleted += 1
-
-        db.session.commit()
-        return jsonify(success=True, deleted=deleted)
-
-    except Exception as e:
-        print("🔥 Delete week income error:", e)
-        db.session.rollback()
-        return jsonify(success=False, error="Server error"), 500
     
 # --- Initialize DB ---
 with app.app_context():
