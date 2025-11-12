@@ -8,7 +8,7 @@ import pymysql
 import os
 import calendar
 
-# --- Flask app ---
+# Flask app 
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 app.secret_key = "mysecretkey"
 
@@ -435,5 +435,6 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
