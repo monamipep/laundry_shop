@@ -57,7 +57,7 @@ class Income(db.Model):
         return f"<Income {self.date} ₱{self.total}>"
 
 
-# --- Helper ---
+# Helper 
 def get_price_per_kg(laundry_type):
     mapping = {
         "Wash-Dry-Fold": 23,
@@ -435,6 +435,7 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
