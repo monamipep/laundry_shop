@@ -103,13 +103,13 @@ def add_income_entry(entry_date: date, amount: float):
         db.session.rollback()
 
 
-# --- ROUTES ---
+#  ROUTES 
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
 
-# --- LOGIN ---
+# LOGIN 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -128,7 +128,7 @@ def login():
     return render_template('login.html')
 
 
-# --- REGISTER ---
+#  REGISTER 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -149,7 +149,7 @@ def register():
     return render_template('register.html')
 
 
-# --- USER DASHBOARD ---
+# USER DASHBOARD 
 @app.route('/user', methods=['GET', 'POST'])
 def user_dashboard():
     if 'user_id' not in session:
@@ -197,7 +197,7 @@ def user_dashboard():
     return render_template('user_dashboard.html', user=user, orders=orders)
 
 
-# --- ADMIN DASHBOARD ---
+#  ADMIN DASHBOARD 
 @app.route('/admin')
 def admin_dashboard():
     if 'user_id' not in session:
@@ -435,6 +435,7 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
