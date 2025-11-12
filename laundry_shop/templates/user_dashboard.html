@@ -1,319 +1,293 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Dashboard | Laundry Shop</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      margin: 40px 10px;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h2, h3 { color: #333; margin-top: 0; }
-    .logout {
-      float: right;
-      color: red;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .logout:hover { text-decoration: underline; }
-    .laundry-types {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin: 15px 0;
-    }
-    .laundry-option {
-      flex: 1 1 150px;
-      text-align: center;
-      border: 2px solid #ccc;
-      border-radius: 12px;
-      padding: 15px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .laundry-option:hover {
-      border-color: #007bff;
-      background: #eef5ff;
-    }
-    .laundry-option.selected {
-      border-color: #007bff;
-      background: #dce9ff;
-    }
-    .laundry-option img {
-      width: 70px;
-      height: 70px;
-      object-fit: contain;
-      margin-bottom: 10px;
-    }
-    .laundry-option input { display: none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Dashboard | Laundry Shop</title>
+<style>
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 40px 10px;
+    background: url("{{ url_for('static', filename='img/laundry-background.png') }}") no-repeat center center fixed;
+    background-size: cover;
+}
 
-    input, button {
-      padding: 8px;
-      margin: 5px 0;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    button {
-      background: #007bff;
-      border: none;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      border-radius: 6px;
-      transition: 0.3s;
-    }
-    button:hover { background: #0056b3; }
+/* Container */
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: rgba(240, 248, 255, 0.95); /* Light blue */
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
-    .pickup-section {
-      margin-top: 15px;
-      padding: 12px;
-      background: #f9f9f9;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-    #pickupDetails {
-      display: none;
-      margin-top: 10px;
-    }
+/* Titles */
+h2, h3 { color: #004080; margin-top: 0; }
+.logout { float:right; color:red; text-decoration:none; font-weight:bold; }
+.logout:hover { text-decoration:underline; }
 
-    #pricePreview {
-      font-weight: bold;
-      color: green;
-      margin: 10px 0;
-    }
+/* Laundry options */
+.laundry-types { display:flex; flex-wrap:wrap; gap:15px; margin:15px 0; }
+.laundry-option {
+    flex:1 1 150px;
+    text-align:center;
+    border:2px solid #aac8ff;
+    border-radius:12px;
+    padding:15px;
+    cursor:pointer;
+    transition:0.3s;
+    background:white;
+}
+.laundry-option:hover { border-color:#007bff; background:#e8f2ff; }
+.laundry-option.selected { border-color:#007bff; background:#d6e7ff; }
+.laundry-option img { width:70px; height:70px; margin-bottom:10px; object-fit:contain; }
+.laundry-option input { display:none; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      font-size: 14px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: center;
-    }
-    th {
-      background: #2b2b2b;
-      color: white;
-    }
-    tr:nth-child(even) { background: #f9f9f9; }
+/* Inputs & Buttons */
+input, button, select {
+    padding:8px;
+    margin:5px 0;
+    width:100%;
+    box-sizing:border-box;
+    border:1px solid #aac8ff;
+    border-radius:5px;
+}
+button {
+    background:#007bff;
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+    border-radius:6px;
+}
+button:hover { background:#0056b3; }
 
-    @media (max-width: 700px) {
-      .laundry-types { flex-direction: column; }
-      .laundry-option { width: 100%; }
-      body { margin: 20px 5px; }
-    }
-  </style>
+/* Pickup toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  margin-right:10px;
+}
+.switch input {display:none;}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius:34px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px; width: 26px;
+  left: 4px; bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius:50%;
+}
+input:checked + .slider {
+  background-color: #007bff;
+}
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.pickup-section {
+    margin-top:15px;
+    padding:15px;
+    background:#f0f8ff;
+    border:1px solid #aac8ff;
+    border-radius:10px;
+}
+#pickupDetails { display:none; margin-top:10px; }
+
+/* Orders table */
+table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; background:white; border-radius:8px; overflow:hidden; }
+th, td { padding:10px; border:1px solid #cce; text-align:center; }
+th { background:#007bff; color:white; }
+tr:nth-child(even){ background:#f5faff; }
+
+#pricePreview { font-weight:bold; color:#007b33; margin:10px 0; text-align:right; }
+
+/* Modal for Dry Cleaning */
+.modal {
+  display:none;
+  position:fixed;
+  z-index:1000;
+  left:0; top:0; width:100%; height:100%;
+  background-color:rgba(0,0,0,0.5);
+}
+.modal-content {
+  background:#fff;
+  margin:5% auto;
+  padding:20px;
+  border-radius:10px;
+  width:90%; max-width:600px;
+  max-height:80vh;
+  overflow-y:auto;
+}
+.modal h3 { margin-top:0; color:#004080; }
+.modal label { display:flex; justify-content:space-between; margin:5px 0; }
+.modal button { margin-top:10px; }
+.modal-close { float:right; cursor:pointer; color:red; font-weight:bold; }
+</style>
 </head>
 <body>
-
 <div class="container">
-  <h2>Welcome, {{ user.username }} 👋</h2>
-  <a href="/logout" class="logout">Logout</a>
-  <hr>
+<h2>Welcome, {{ user.username }} 👋</h2>
+<a href="{{ url_for('logout') }}" class="logout">Logout</a>
+<hr>
 
-  <h3>Place a New Laundry Order</h3>
-  <form method="POST" action="/place_order">
-    <label><b>Select Laundry Type:</b></label>
-    <div class="laundry-types">
-      <label class="laundry-option">
-        <input type="radio" name="laundry_type" value="Wash-Dry-Fold" data-price="23" required>
-        <img src="/static/img/wash.png" alt="Wash Dry Fold">
-        <div>Wash-Dry-Fold<br><small>₱23/kg</small></div>
-      </label>
-      <label class="laundry-option">
-        <input type="radio" name="laundry_type" value="Wash-Dry-Press" data-price="60">
-        <img src="/static/img/press.png" alt="Wash Dry Press">
-        <div>Wash-Dry-Press<br><small>₱60/kg</small></div>
-      </label>
-      <label class="laundry-option">
-        <input type="radio" name="laundry_type" value="Press Only" data-price="40">
-        <img src="/static/img/iron.png" alt="Press Only">
-        <div>Press Only<br><small>₱40/kg</small></div>
-      </label>
-      <label class="laundry-option">
-        <input type="radio" name="laundry_type" value="Special Items" data-price="70">
-        <img src="/static/img/special.png" alt="Special Items">
-        <div>Special Items<br><small>₱70/kg</small></div>
-      </label>
-    </div>
-
-    <label>Weight (kg):</label>
-    <input type="number" name="weight" step="0.1" min="0.5" required>
-
-    <div class="pickup-section">
-      <label><b>Would you like Pickup + Drop-off Service?</b></label><br>
-      <input type="checkbox" id="pickupCheck" name="pickup_requested">
-      Yes, pickup & deliver back to my unit (+₱20)
-      
-      <div id="pickupDetails">
-        <label>Floor Number:</label>
-        <input type="text" name="floor_number" placeholder="e.g., 8th Floor">
-        <label>Unit Number:</label>
-        <input type="text" name="unit_number" placeholder="e.g., Room 804">
-      </div>
-    </div>
-
-    <p id="pricePreview"></p>
-
-    <button type="submit">Submit Order</button>
-  </form>
-
-  <h3>My Laundry Orders</h3>
-  <table>
-    <tr>
-      <th>ID</th>
-      <th>Type</th>
-      <th>Weight</th>
-      <th>Price</th>
-      <th>Pickup + Drop-off</th>
-      <th>Status</th>
-      <th>Date Created</th>
-    </tr>
-    {% for o in orders %}
-    <tr>
-      <td>{{ o.id }}</td>
-      <td>{{ o.laundry_type }}</td>
-      <td>{{ o.weight_kg }} kg</td>
-      <td>₱{{ "%.2f"|format(o.price) }}</td>
-      <td>
-        {% if o.pickup_requested %}
-          Yes<br><small>Floor {{ o.floor_number }}, Unit {{ o.unit_number }}</small>
-        {% else %}
-          No
-        {% endif %}
-      </td>
-      <td>{{ o.status }}</td>
-      <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
-    </tr>
-    {% else %}
-    <tr><td colspan="7">No orders yet.</td></tr>
-    {% endfor %}
-  </table>
+<h3>Place a New Laundry Order</h3>
+<form method="POST">
+<label><b>Select Laundry Type:</b></label>
+<div class="laundry-types">
+  <label class="laundry-option">
+    <input type="radio" name="laundry_type" value="Wash-Dry-Fold" data-price="23" required>
+    <img src="{{ url_for('static', filename='img/wash.png') }}">
+    <div>Wash-Dry-Fold<br><small>₱23/kg</small></div>
+  </label>
+  <label class="laundry-option">
+    <input type="radio" name="laundry_type" value="Wash-Dry-Press" data-price="60">
+    <img src="{{ url_for('static', filename='img/press.png') }}">
+    <div>Wash-Dry-Press<br><small>₱60/kg</small></div>
+  </label>
+  <label class="laundry-option">
+    <input type="radio" name="laundry_type" value="Press Only" data-price="40">
+    <img src="{{ url_for('static', filename='img/iron.png') }}">
+    <div>Press Only<br><small>₱40/kg</small></div>
+  </label>
+  <label class="laundry-option" id="dryCleanOption">
+    <input type="radio" name="laundry_type" value="Dry Cleaning" data-price="70">
+    <img src="{{ url_for('static', filename='img/special.png') }}">
+    <div>Dry Cleaning<br><small>₱70/kg</small></div>
+  </label>
 </div>
 
-<!-- Pickup Validation & Price Script -->
+<label>Weight (kg):</label>
+<input type="number" name="weight" step="0.1" min="0.5" required>
+
+<div class="pickup-section">
+<label><b>Pickup + Drop-off?</b></label><br>
+<label class="switch">
+  <input type="checkbox" id="pickupCheck" name="pickup_requested">
+  <span class="slider"></span>
+</label> Yes (+₱20)
+<div id="pickupDetails">
+  <label>Floor Number:</label>
+  <select name="floor_number" id="floorSelect">
+    <option value="">Select Floor</option>
+    {% for i in range(1,6) %}
+    <option value="{{ i }}">{{ i }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Unit Number:</label>
+  <select name="unit_number" id="roomSelect">
+    <option value="">Select Room</option>
+  </select>
+</div>
+</div>
+
+<p id="pricePreview"></p>
+<button type="submit">Submit Order</button>
+<button type="button" id="updateBtn">Update Order</button>
+</form>
+
+<h3>My Laundry Orders</h3>
+<table>
+<tr><th>ID</th><th>Type</th><th>Weight</th><th>Price</th><th>Pickup</th><th>Status</th><th>Date Created</th></tr>
+{% for o in orders %}
+<tr>
+<td>{{ o.id }}</td>
+<td>{{ o.laundry_type }}</td>
+<td>{{ o.weight_kg }} kg</td>
+<td>₱{{ "%.2f"|format(o.price) }}</td>
+<td>{% if o.pickup_requested %}Yes<br><small>Floor {{ o.floor_number }}, Unit {{ o.unit_number }}</small>{% else %}No{% endif %}</td>
+<td>{{ o.status }}</td>
+<td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7">No orders yet.</td></tr>
+{% endfor %}
+</table>
+</div>
+
+<!-- Dry Cleaning Modal -->
+<div id="dryCleanModal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" id="closeModal">&times;</span>
+    <h3>Select Dry Cleaning Items</h3>
+    <div id="dryItemsList"></div>
+    <button id="addDryItems">OK</button>
+  </div>
+</div>
+
 <script>
-  const form = document.querySelector('form');
-  const weightInput = document.querySelector('input[name="weight"]');
-  const pricePreview = document.getElementById('pricePreview');
-  const pickupCheck = document.getElementById('pickupCheck');
-  const pickupDetails = document.getElementById('pickupDetails');
-  let selectedPricePerKg = 0;
+const dryCleanOption = document.getElementById("dryCleanOption");
+const dryModal = document.getElementById("dryCleanModal");
+const closeModal = document.getElementById("closeModal");
+const dryItemsList = document.getElementById("dryItemsList");
+const addDryItems = document.getElementById("addDryItems");
 
-  // Laundry type selection
-  document.querySelectorAll('.laundry-option input').forEach(input => {
-    input.addEventListener('change', () => {
-      document.querySelectorAll('.laundry-option').forEach(opt => opt.classList.remove('selected'));
-      input.closest('.laundry-option').classList.add('selected');
-      selectedPricePerKg = parseFloat(input.dataset.price);
-      updatePricePreview();
-    });
-  });
+const dryItems = [
+  ["Barong/Blouse",400],["Bath Robe",350],["Belt",250],["Blazer",350],
+  ["Bolero",270],["Cap/Bonnet/Earmuffs/Facemask",260],["Christening/Baptismal Apparel",500],
+  ["Coat",350],["Dress-Plain",350],["Dress/Gown-beaded/Kimona",1000],["Gloves leather/Mittens/socks",350],
+  ["Gown-Filipiniana/Jusi/Embroidered",1000],["Jacket",350],["Leather Jacket",400],
+  ["Leather Overall/rider's suit",1200],["Leather Pants/skirt",450],["Necktie/Handkerchief",250],
+  ["Overall/Cover-all",500],["Overcoat",500],["Pants/Jeans/Slacks",285],
+  ["Scarf/Shawl/Stola/Lingerie",270],["Shorts/Swimwear",260],["Skirt",260],
+  ["Sotana/Priest's vestment",350],["Sweater/Cardigan",350],["Toga Robe",350],
+  ["Top - Long Sleeve",285],["Top - Short Sleeve",270],["Top - Sleeveless",250],
+  ["Vest",270],["Vestment/Saint clothing/Cape",2000],["Wedding Gown & Trane (w/accessories)",2000]
+];
 
-  // Update price dynamically
-  weightInput.addEventListener('input', updatePricePreview);
-  pickupCheck.addEventListener('change', () => {
-    pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none';
-    if (!pickupCheck.checked) {
-      pickupDetails.querySelectorAll('input').forEach(i => i.value = '');
-    }
-    updatePricePreview();
-  });
+dryItemsList.innerHTML = dryItems.map(i =>
+  `<label><span>${i[0]}</span><span>₱${i[1]}</span><input type="checkbox" value="${i[0]}"></label>`
+).join("");
 
-  function updatePricePreview() {
-    const weight = parseFloat(weightInput.value);
-    if (!isNaN(weight) && selectedPricePerKg > 0) {
-      let total = weight * selectedPricePerKg;
-      if (pickupCheck.checked) total += 20;
-      pricePreview.textContent = `Estimated Price: ₱${total.toFixed(2)} (${selectedPricePerKg}/kg${pickupCheck.checked ? ' + ₱20 pickup & drop-off' : ''})`;
-    } else {
-      pricePreview.textContent = '';
+dryCleanOption.addEventListener("click", ()=>{ dryModal.style.display="block"; });
+closeModal.addEventListener("click", ()=>{ dryModal.style.display="none"; });
+addDryItems.addEventListener("click", ()=>{
+  const selected = [...dryItemsList.querySelectorAll("input:checked")].map(i=>i.value);
+  if(selected.length) alert("Added Dry Cleaning Items:\n" + selected.join(", "));
+  dryModal.style.display="none";
+});
+
+/* Pickup Toggle Behavior */
+const pickupCheck = document.getElementById('pickupCheck');
+const pickupDetails = document.getElementById('pickupDetails');
+pickupCheck.addEventListener('change', ()=>{
+  pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none';
+});
+
+/* Floor and Room Dropdowns */
+const floorSelect = document.getElementById('floorSelect');
+const roomSelect = document.getElementById('roomSelect');
+floorSelect.addEventListener('change', ()=>{
+  const floor = parseInt(floorSelect.value);
+  roomSelect.innerHTML = '<option value="">Select Room</option>';
+  if(floor){
+    for(let i=1;i<=5;i++){
+      const room = floor*100 + i;
+      const opt = document.createElement('option');
+      opt.value = room; opt.textContent = room;
+      roomSelect.appendChild(opt);
     }
   }
+});
 
-  // ✅ Custom modal popup
-  function showModal(message, onConfirm) {
-    const modal = document.createElement("div");
-    modal.innerHTML = `
-      <div id="confirmModal" style="
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.5);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999;
-      ">
-        <div style="
-          background: white;
-          padding: 25px 30px;
-          border-radius: 12px;
-          width: 340px;
-          text-align: center;
-          box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-          animation: fadeIn 0.25s ease;
-        ">
-          <h3 style="color: #e67e22; margin: 0 0 10px 0;">⚠️ Attention</h3>
-          <p style="color: #333; font-size: 15px; margin-bottom: 20px;">${message}</p>
-          <div style="display:flex; justify-content:center; gap:10px;">
-            <button id="cancelBtn" style="
-              background: #ccc;
-              color: black;
-              border: none;
-              padding: 7px 15px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-weight: bold;
-            ">OK</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    document.getElementById("cancelBtn").addEventListener("click", () => modal.remove());
-  }
-
-  // ✅ Form validation
-  form.addEventListener('submit', function (e) {
-    if (pickupCheck.checked) {
-      const floor = document.querySelector('input[name="floor_number"]').value.trim();
-      const unit = document.querySelector('input[name="unit_number"]').value.trim();
-      if (floor === '' || unit === '') {
-        e.preventDefault();
-        showModal("Please enter both <b>Floor Number</b> and <b>Unit Number</b> for pickup & drop-off service.");
-        return false;
-      }
-    }
-  });
+/* Update Order Button */
+document.getElementById("updateBtn").addEventListener("click", ()=>{
+  alert("Update functionality to edit existing orders can be implemented here.");
+});
 </script>
-
-<style>
-  @keyframes fadeIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-</style>
-
-
-<style>
-  @keyframes pop {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-</style>
-
-
 </body>
 </html>
+
+
