@@ -16,16 +16,31 @@ body {
 .container {
     max-width: 900px;
     margin: auto;
-    background: rgba(240, 248, 255, 0.95); /* Light blue */
+    background: rgba(240, 248, 255, 0.96); /* Light blue */
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    position: relative;
 }
 
 /* Titles */
 h2, h3 { color: #004080; margin-top: 0; }
-.logout { float:right; color:red; text-decoration:none; font-weight:bold; }
-.logout:hover { text-decoration:underline; }
+
+/* Logout Box */
+.logout-box {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: #ff9933;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-decoration: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transition: background 0.3s;
+}
+.logout-box:hover { background: #ff7700; }
 
 /* Laundry options */
 .laundry-types { display:flex; flex-wrap:wrap; gap:15px; margin:15px 0; }
@@ -60,6 +75,7 @@ button {
     cursor:pointer;
     font-weight:bold;
     border-radius:6px;
+    transition: background 0.3s;
 }
 button:hover { background:#0056b3; }
 
@@ -89,12 +105,8 @@ button:hover { background:#0056b3; }
   transition: .4s;
   border-radius:50%;
 }
-input:checked + .slider {
-  background-color: #007bff;
-}
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
+input:checked + .slider { background-color: #007bff; }
+input:checked + .slider:before { transform: translateX(26px); }
 
 .pickup-section {
     margin-top:15px;
@@ -131,19 +143,32 @@ tr:nth-child(even){ background:#f5faff; }
   overflow-y:auto;
 }
 .modal h3 { margin-top:0; color:#004080; }
-.modal label { display:flex; justify-content:space-between; margin:5px 0; }
-.modal button { margin-top:10px; }
+.modal label {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 12px;
+  border-bottom:1px solid #eee;
+  font-size:15px;
+}
+.modal label:hover { background:#f2f7ff; }
+.modal input[type="checkbox"] {
+  width:20px; height:20px;
+}
+.modal button {
+  margin-top:15px;
+  width:100%;
+  background:#007bff;
+}
 .modal-close { float:right; cursor:pointer; color:red; font-weight:bold; }
 </style>
 </head>
 <body>
 <div class="container">
 <h2>Welcome, {{ user.username }} 👋</h2>
-<a href="{{ url_for('logout') }}" class="logout">Logout</a>
-<hr>
 
 <h3>Place a New Laundry Order</h3>
-<form method="POST">
+<form method="POST" id="orderForm">
 <label><b>Select Laundry Type:</b></label>
 <div class="laundry-types">
   <label class="laundry-option">
@@ -215,6 +240,9 @@ tr:nth-child(even){ background:#f5faff; }
 <tr><td colspan="7">No orders yet.</td></tr>
 {% endfor %}
 </table>
+
+<!-- Logout Box -->
+<a href="{{ url_for('logout') }}" class="logout-box">Logout</a>
 </div>
 
 <!-- Dry Cleaning Modal -->
@@ -247,9 +275,15 @@ const dryItems = [
   ["Vest",270],["Vestment/Saint clothing/Cape",2000],["Wedding Gown & Trane (w/accessories)",2000]
 ];
 
-dryItemsList.innerHTML = dryItems.map(i =>
-  `<label><span>${i[0]}</span><span>₱${i[1]}</span><input type="checkbox" value="${i[0]}"></label>`
-).join("");
+// Create clean two-column layout
+let dryHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+dryItems.forEach(([name,price])=>{
+  dryHTML += `
+    <label><span>${name}</span><span>₱${price}</span><input type="checkbox" value="${name}"></label>
+  `;
+});
+dryHTML += '</div>';
+dryItemsList.innerHTML = dryHTML;
 
 dryCleanOption.addEventListener("click", ()=>{ dryModal.style.display="block"; });
 closeModal.addEventListener("click", ()=>{ dryModal.style.display="none"; });
@@ -259,14 +293,12 @@ addDryItems.addEventListener("click", ()=>{
   dryModal.style.display="none";
 });
 
-/* Pickup Toggle Behavior */
+/* Pickup Toggle */
 const pickupCheck = document.getElementById('pickupCheck');
 const pickupDetails = document.getElementById('pickupDetails');
-pickupCheck.addEventListener('change', ()=>{
-  pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none';
-});
+pickupCheck.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; });
 
-/* Floor and Room Dropdowns */
+/* Floor & Room Dropdowns */
 const floorSelect = document.getElementById('floorSelect');
 const roomSelect = document.getElementById('roomSelect');
 floorSelect.addEventListener('change', ()=>{
@@ -282,12 +314,15 @@ floorSelect.addEventListener('change', ()=>{
   }
 });
 
-/* Update Order Button */
+/* Update Order */
 document.getElementById("updateBtn").addEventListener("click", ()=>{
-  alert("Update functionality to edit existing orders can be implemented here.");
+  const editable = document.querySelectorAll("#orderForm input, #orderForm select");
+  editable.forEach(e=>e.disabled = !e.disabled);
+  alert("Fields are now editable. After editing, click Submit to save changes.");
 });
 </script>
 </body>
 </html>
+
 
 
