@@ -11,8 +11,6 @@ body {
     background: url("{{ url_for('static', filename='img/laundry-background.png') }}") no-repeat center center fixed;
     background-size: cover;
 }
-
-/* Container */
 .container {
     max-width: 900px;
     margin: auto;
@@ -21,11 +19,7 @@ body {
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
-
-/* Titles */
 h2, h3 { color: #004080; margin-top: 0; }
-
-/* Logout Box */
 .logout-box {
     display: block;
     margin: 20px auto 0 auto;
@@ -38,8 +32,6 @@ h2, h3 { color: #004080; margin-top: 0; }
     text-align:center;
 }
 .logout-box:hover { background: #ff7700; }
-
-/* Laundry options */
 .laundry-types { display:flex; flex-wrap:wrap; gap:15px; margin:15px 0; }
 .laundry-option {
     flex:1 1 150px;
@@ -56,8 +48,6 @@ h2, h3 { color: #004080; margin-top: 0; }
 .laundry-option.selected { border-color:#007bff; background:#d6e7ff; }
 .laundry-option img { width:70px; height:70px; margin-bottom:10px; object-fit:contain; }
 .laundry-option input { display:none; }
-
-/* Inputs & Buttons */
 input, button, select {
     padding:8px;
     margin:5px 0;
@@ -76,8 +66,6 @@ button {
     transition: background 0.3s;
 }
 button:hover { background:#0056b3; }
-
-/* Pickup toggle */
 .switch {
   position: relative;
   display: inline-block;
@@ -105,7 +93,6 @@ button:hover { background:#0056b3; }
 }
 input:checked + .slider { background-color: #007bff; }
 input:checked + .slider:before { transform: translateX(26px); }
-
 .pickup-section {
     margin-top:15px;
     padding:15px;
@@ -114,15 +101,11 @@ input:checked + .slider:before { transform: translateX(26px); }
     border-radius:10px;
 }
 #pickupDetails { display:none; margin-top:10px; }
-
-/* Orders table */
 table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; background:white; border-radius:8px; overflow:hidden; }
 th, td { padding:10px; border:1px solid #cce; text-align:center; }
 th { background:#007bff; color:white; }
 tr:nth-child(even){ background:#f5faff; }
 .total-paid { font-weight:bold; text-align:right; margin-top:10px; color:#004080; }
-
-/* Modals */
 .modal {
   display:none;
   position:fixed;
@@ -144,7 +127,6 @@ tr:nth-child(even){ background:#f5faff; }
 .modal button { margin-top:15px; width:100%; background:#007bff; }
 .modal-close { float:right; cursor:pointer; color:red; font-weight:bold; }
 #gcashQrImg { width:200px; display:block; margin:10px auto; }
-
 </style>
 </head>
 <body>
@@ -181,7 +163,6 @@ tr:nth-child(even){ background:#f5faff; }
 <input type="number" name="weight" step="0.1" min="0.5" required>
 <p id="pricePreview">Total: ₱0.00</p>
 
-<!-- Pickup / Delivery Section -->
 <label><b>Delivery / Pickup:</b></label>
 <div class="pickup-section">
   <label class="switch">
@@ -260,15 +241,29 @@ tr:nth-child(even){ background:#f5faff; }
     <button id="cashBtn">Cash</button>
     <button id="gcashBtn">GCash</button>
     <img id="gcashQrImg" src="{{ url_for('static', filename='img/gcash_qr.png') }}" style="display:none">
+    <p id="gcashText" style="display:none;">Scan GCash QR to pay. Thank you!</p>
+  </div>
+</div>
+
+<!-- Update Modal -->
+<div id="updateModal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" id="closeUpdateModal">&times;</span>
+    <h3>Update Order</h3>
+    <div class="laundry-types" id="updateLaundryTypes"></div>
+    <label>Weight (kg):</label>
+    <input type="number" id="updateWeight" step="0.1" min="0.5">
+    <p id="updatePricePreview">Total: ₱0.00</p>
+    <button id="confirmUpdate">Update</button>
   </div>
 </div>
 
 <script>
-// Laundry type selection
+// Laundry selection
 const laundryOptions = document.querySelectorAll('.laundry-option');
 laundryOptions.forEach(option => {
   const input = option.querySelector('input');
-  option.addEventListener('click', ()=>{
+  option.addEventListener('click', ()=> {
     laundryOptions.forEach(o=>o.classList.remove('selected'));
     option.classList.add('selected');
     input.checked = true;
@@ -276,7 +271,7 @@ laundryOptions.forEach(option => {
   });
 });
 
-// Dry Cleaning modal
+// Dry cleaning modal
 const dryCleanOption = document.getElementById("dryCleanOption");
 const dryModal = document.getElementById("dryCleanModal");
 const closeModal = document.getElementById("closeModal");
@@ -314,8 +309,6 @@ addDryItems.addEventListener("click", ()=>{
 const pickupCheck = document.getElementById('pickupCheck');
 const pickupDetails = document.getElementById('pickupDetails');
 pickupCheck.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; updatePrice(); });
-
-// Floor & Room select
 const floorSelect = document.getElementById('floorSelect');
 const roomSelect = document.getElementById('roomSelect');
 floorSelect.addEventListener('change', ()=>{
@@ -355,27 +348,107 @@ const paymentModal = document.getElementById('paymentModal');
 const cashBtn = document.getElementById("cashBtn");
 const gcashBtn = document.getElementById("gcashBtn");
 const gcashQrImg = document.getElementById("gcashQrImg");
-
-// Attach pay buttons in table dynamically
+const gcashText = document.getElementById("gcashText");
 document.querySelectorAll('.pay-order-btn').forEach(btn=>{
   btn.addEventListener('click', e=>{
     paymentModal.classList.add('show');
+    gcashQrImg.style.display='none';
+    gcashText.style.display='none';
   });
 });
-
 cashBtn.addEventListener('click', ()=>{
   paymentModal.classList.remove('show');
   alert("Pay cash upon pickup. Thank you!");
 });
 gcashBtn.addEventListener('click', ()=>{
   gcashQrImg.style.display='block';
-  alert("Scan GCash QR to pay. Thank you!");
-  setTimeout(()=> paymentModal.classList.remove('show'),2000);
+  gcashText.style.display='block';
 });
-window.addEventListener('click', e=>{
-  if(e.target==paymentModal) paymentModal.classList.remove('show');
+window.addEventListener('click', e=>{ if(e.target==paymentModal) paymentModal.classList.remove('show'); });
+
+// Update modal functionality
+const updateModal = document.getElementById("updateModal");
+const closeUpdateModal = document.getElementById("closeUpdateModal");
+const updateLaundryTypes = document.getElementById("updateLaundryTypes");
+const updateWeight = document.getElementById("updateWeight");
+const updatePricePreview = document.getElementById("updatePricePreview");
+const confirmUpdate = document.getElementById("confirmUpdate");
+let currentUpdateRow = null;
+let updateSelectedDryItems = [];
+
+function cloneLaundryOptions(){
+  updateLaundryTypes.innerHTML = "";
+  laundryOptions.forEach(option=>{
+    const clone = option.cloneNode(true);
+    clone.classList.remove('selected');
+    const input = clone.querySelector('input');
+    input.checked = false;
+    clone.addEventListener('click', ()=>{
+      updateLaundryTypes.querySelectorAll('.laundry-option').forEach(o=>o.classList.remove('selected'));
+      clone.classList.add('selected');
+      input.checked = true;
+      updateUpdatePrice();
+    });
+    updateLaundryTypes.appendChild(clone);
+  });
+}
+function updateUpdatePrice(){
+  let total = 0;
+  const weight = parseFloat(updateWeight.value) || 0;
+  const selectedLaundryInput = updateLaundryTypes.querySelector('input[name="laundry_type"]:checked');
+  if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
+  updateSelectedDryItems.forEach(item=>{
+    const price = dryItems.find(([n])=>n===item)[1];
+    total += price;
+  });
+  if(pickupCheck.checked) total += 20;
+  updatePricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
+}
+updateWeight.addEventListener('input', updateUpdatePrice);
+
+document.querySelectorAll('.update-order-btn').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    const row = e.target.closest('tr');
+    currentUpdateRow = row;
+    cloneLaundryOptions();
+
+    const type = row.querySelector('.type-cell').textContent.trim();
+    const weight = parseFloat(row.querySelector('.weight-cell').textContent) || 0;
+    const selectedInput = updateLaundryTypes.querySelector(`input[value="${type}"]`);
+    if(selectedInput){
+      selectedInput.checked = true;
+      selectedInput.parentElement.classList.add('selected');
+    }
+    updateWeight.value = weight;
+    updateSelectedDryItems = [];
+    updateUpdatePrice();
+
+    updateModal.classList.add('show');
+  });
+});
+closeUpdateModal.addEventListener('click', ()=> updateModal.classList.remove('show'));
+window.addEventListener('click', e=>{ if(e.target==updateModal) updateModal.classList.remove('show'); });
+
+confirmUpdate.addEventListener('click', ()=>{
+  if(currentUpdateRow){
+    const selectedLaundryInput = updateLaundryTypes.querySelector('input[name="laundry_type"]:checked');
+    const weight = parseFloat(updateWeight.value) || 0;
+    let total = 0;
+    if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
+    updateSelectedDryItems.forEach(item=>{
+      const price = dryItems.find(([n])=>n===item)[1];
+      total += price;
+    });
+    if(pickupCheck.checked) total += 20;
+
+    currentUpdateRow.querySelector('.type-cell').textContent = selectedLaundryInput.value;
+    currentUpdateRow.querySelector('.weight-cell').textContent = `${weight} kg`;
+    currentUpdateRow.querySelector('.order-price').textContent = `₱${total.toFixed(2)}`;
+    updateModal.classList.remove('show');
+  }
 });
 </script>
 </body>
 </html>
+
 
