@@ -16,7 +16,7 @@ body {
 .container {
     max-width: 900px;
     margin: auto;
-    background: rgba(240, 248, 255, 0.96); /* Light blue */
+    background: rgba(240, 248, 255, 0.96);
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -125,7 +125,7 @@ tr:nth-child(even){ background:#f5faff; }
 
 #pricePreview { font-weight:bold; color:#007b33; margin:10px 0; text-align:right; }
 
-/* Modal for Dry Cleaning */
+/* Modals */
 .modal {
   display:none;
   position:fixed;
@@ -133,12 +133,13 @@ tr:nth-child(even){ background:#f5faff; }
   left:0; top:0; width:100%; height:100%;
   background-color:rgba(0,0,0,0.5);
 }
+.modal.show { display:block; }
 .modal-content {
   background:#fff;
   margin:5% auto;
   padding:20px;
   border-radius:10px;
-  width:90%; max-width:600px;
+  width:90%; max-width:400px;
   max-height:80vh;
   overflow-y:auto;
 }
@@ -152,14 +153,8 @@ tr:nth-child(even){ background:#f5faff; }
   font-size:15px;
 }
 .modal label:hover { background:#f2f7ff; }
-.modal input[type="checkbox"] {
-  width:20px; height:20px;
-}
-.modal button {
-  margin-top:15px;
-  width:100%;
-  background:#007bff;
-}
+.modal input[type="checkbox"] { width:20px; height:20px; }
+.modal button { margin-top:15px; width:100%; background:#007bff; }
 .modal-close { float:right; cursor:pointer; color:red; font-weight:bold; }
 </style>
 </head>
@@ -195,32 +190,11 @@ tr:nth-child(even){ background:#f5faff; }
 
 <label>Weight (kg):</label>
 <input type="number" name="weight" step="0.1" min="0.5" required>
+<p id="pricePreview">Total: ₱0.00</p>
 
-<div class="pickup-section">
-<label><b>Pickup + Drop-off?</b></label><br>
-<label class="switch">
-  <input type="checkbox" id="pickupCheck" name="pickup_requested">
-  <span class="slider"></span>
-</label> Yes (+₱20)
-<div id="pickupDetails">
-  <label>Floor Number:</label>
-  <select name="floor_number" id="floorSelect">
-    <option value="">Select Floor</option>
-    {% for i in range(1,6) %}
-    <option value="{{ i }}">{{ i }}</option>
-    {% endfor %}
-  </select>
-
-  <label>Unit Number:</label>
-  <select name="unit_number" id="roomSelect">
-    <option value="">Select Room</option>
-  </select>
-</div>
-</div>
-
-<p id="pricePreview"></p>
-<button type="submit">Submit Order</button>
+<button type="submit" id="submitOrder">Submit Order</button>
 <button type="button" id="updateBtn">Update Order</button>
+<button type="button" id="payBtn" disabled>Pay Order</button>
 </form>
 
 <h3>My Laundry Orders</h3>
@@ -241,7 +215,6 @@ tr:nth-child(even){ background:#f5faff; }
 {% endfor %}
 </table>
 
-<!-- Logout Box -->
 <a href="{{ url_for('logout') }}" class="logout-box">Logout</a>
 </div>
 
@@ -255,12 +228,38 @@ tr:nth-child(even){ background:#f5faff; }
   </div>
 </div>
 
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal">
+  <div class="modal-content">
+    <h3>Select Payment Method</h3>
+    <p id="modalTotal">Total: ₱0.00</p>
+    <button id="cashBtn">Cash</button>
+    <button id="gcashBtn">GCash</button>
+  </div>
+</div>
+
 <script>
+// ===== Laundry Type Selection =====
+const laundryOptions = document.querySelectorAll('.laundry-option');
+let selectedType = '';
+laundryOptions.forEach(option => {
+  const input = option.querySelector('input');
+  option.addEventListener('click', ()=>{
+    laundryOptions.forEach(o=>o.classList.remove('selected'));
+    option.classList.add('selected');
+    input.checked = true;
+    selectedType = input.value;
+    updatePrice();
+  });
+});
+
+// ===== Dry Cleaning =====
 const dryCleanOption = document.getElementById("dryCleanOption");
 const dryModal = document.getElementById("dryCleanModal");
 const closeModal = document.getElementById("closeModal");
 const dryItemsList = document.getElementById("dryItemsList");
 const addDryItems = document.getElementById("addDryItems");
+let selectedDryItems = [];
 
 const dryItems = [
   ["Barong/Blouse",400],["Bath Robe",350],["Belt",250],["Blazer",350],
@@ -275,12 +274,10 @@ const dryItems = [
   ["Vest",270],["Vestment/Saint clothing/Cape",2000],["Wedding Gown & Trane (w/accessories)",2000]
 ];
 
-// Create clean two-column layout
+// render dry items
 let dryHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
 dryItems.forEach(([name,price])=>{
-  dryHTML += `
-    <label><span>${name}</span><span>₱${price}</span><input type="checkbox" value="${name}"></label>
-  `;
+  dryHTML += `<label><span>${name}</span><span>₱${price}</span><input type="checkbox" value="${name}"></label>`;
 });
 dryHTML += '</div>';
 dryItemsList.innerHTML = dryHTML;
@@ -288,17 +285,18 @@ dryItemsList.innerHTML = dryHTML;
 dryCleanOption.addEventListener("click", ()=>{ dryModal.style.display="block"; });
 closeModal.addEventListener("click", ()=>{ dryModal.style.display="none"; });
 addDryItems.addEventListener("click", ()=>{
-  const selected = [...dryItemsList.querySelectorAll("input:checked")].map(i=>i.value);
-  if(selected.length) alert("Added Dry Cleaning Items:\n" + selected.join(", "));
+  selectedDryItems = [...dryItemsList.querySelectorAll("input:checked")].map(i=>i.value);
+  if(selectedDryItems.length) alert("Added Dry Cleaning Items:\n" + selectedDryItems.join(", "));
   dryModal.style.display="none";
+  updatePrice();
 });
 
-/* Pickup Toggle */
+// ===== Pickup Toggle =====
 const pickupCheck = document.getElementById('pickupCheck');
 const pickupDetails = document.getElementById('pickupDetails');
-pickupCheck.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; });
+pickupCheck.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; updatePrice(); });
 
-/* Floor & Room Dropdowns */
+// Floor & Room
 const floorSelect = document.getElementById('floorSelect');
 const roomSelect = document.getElementById('roomSelect');
 floorSelect.addEventListener('change', ()=>{
@@ -314,15 +312,51 @@ floorSelect.addEventListener('change', ()=>{
   }
 });
 
-/* Update Order */
-document.getElementById("updateBtn").addEventListener("click", ()=>{
-  const editable = document.querySelectorAll("#orderForm input, #orderForm select");
-  editable.forEach(e=>e.disabled = !e.disabled);
-  alert("Fields are now editable. After editing, click Submit to save changes.");
+// ===== Price Calculation =====
+const weightInput = document.querySelector('input[name="weight"]');
+const pricePreview = document.getElementById('pricePreview');
+const modalTotal = document.getElementById('modalTotal');
+function updatePrice(){
+  let total = 0;
+  const weight = parseFloat(weightInput.value) || 0;
+  const selectedLaundryInput = document.querySelector('input[name="laundry_type"]:checked');
+  if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
+  selectedDryItems.forEach(item=>{
+    const price = dryItems.find(([n])=>n===item)[1];
+    total += price;
+  });
+  if(pickupCheck.checked) total += 20;
+  pricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
+  if(modalTotal) modalTotal.textContent = `Total: ₱${total.toFixed(2)}`;
+}
+weightInput.addEventListener('input', updatePrice);
+
+// ===== Enable Pay after Submit =====
+const submitOrderBtn = document.getElementById('submitOrder');
+const payBtn = document.getElementById('payBtn');
+submitOrderBtn.addEventListener('click', ()=>{
+  setTimeout(()=>{ payBtn.disabled = false; }, 100); // enable pay button after submit
+});
+
+// ===== Payment Modal =====
+const paymentModal = document.getElementById('paymentModal');
+const cashBtn = document.getElementById("cashBtn");
+const gcashBtn = document.getElementById("gcashBtn");
+
+payBtn.addEventListener('click', ()=> paymentModal.classList.add('show'));
+cashBtn.addEventListener('click', ()=>{
+  paymentModal.classList.remove('show');
+  alert("Pay cash upon pickup. Thank you!");
+});
+gcashBtn.addEventListener('click', ()=>{
+  paymentModal.classList.remove('show');
+  alert("Scan GCash QR to pay. Thank you!");
+});
+
+window.addEventListener('click', e=>{
+  if(e.target==paymentModal) paymentModal.classList.remove('show');
 });
 </script>
 </body>
 </html>
-
-
 
