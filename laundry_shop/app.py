@@ -15,7 +15,7 @@ app.secret_key = "mysecretkey"
 # MySQL driver 
 pymysql.install_as_MySQLdb()
 
-# --- Database config ---
+#  Database config 
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:@localhost/laundry_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -435,6 +435,7 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
