@@ -11,6 +11,7 @@ body {
     background: url("{{ url_for('static', filename='img/laundry-background.png') }}") no-repeat center center fixed;
     background-size: cover;
 }
+
 /* Container */
 .container {
     max-width: 900px;
@@ -21,13 +22,14 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     position: relative;
 }
+
 /* Titles */
 h2, h3 { color: #004080; margin-top: 0; }
+
 /* Logout Box */
 .logout-box {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
+    display: block;
+    margin: 20px auto 0 auto;
     background: #ff9933;
     color: white;
     padding: 10px 20px;
@@ -36,8 +38,10 @@ h2, h3 { color: #004080; margin-top: 0; }
     text-decoration: none;
     box-shadow: 0 3px 6px rgba(0,0,0,0.2);
     transition: background 0.3s;
+    text-align:center;
 }
 .logout-box:hover { background: #ff7700; }
+
 /* Laundry options */
 .laundry-types { display:flex; flex-wrap:wrap; gap:15px; margin:15px 0; }
 .laundry-option {
@@ -49,11 +53,26 @@ h2, h3 { color: #004080; margin-top: 0; }
     cursor:pointer;
     transition:0.3s;
     background:white;
+    position: relative;
 }
 .laundry-option:hover { border-color:#007bff; background:#e8f2ff; }
 .laundry-option.selected { border-color:#007bff; background:#d6e7ff; }
 .laundry-option img { width:70px; height:70px; margin-bottom:10px; object-fit:contain; }
 .laundry-option input { display:none; }
+
+.edit-btn, .update-btn {
+    position:absolute;
+    bottom:5px;
+    left:5px;
+    padding:3px 6px;
+    font-size:12px;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+}
+.update-btn { left:auto; right:5px; background:#28a745; color:white;}
+.edit-btn { background:#ffc107; color:white; }
+
 /* Inputs & Buttons */
 input, button, select {
     padding:8px;
@@ -73,117 +92,184 @@ button {
     transition: background 0.3s;
 }
 button:hover { background:#0056b3; }
+
 /* Pickup toggle */
-.switch { position: relative; display: inline-block; width: 60px; height: 34px; margin-right:10px; }
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  margin-right:10px;
+}
 .switch input {display:none;}
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius:34px; }
-.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius:50%; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius:34px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px; width: 26px;
+  left: 4px; bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius:50%;
+}
 input:checked + .slider { background-color: #007bff; }
 input:checked + .slider:before { transform: translateX(26px); }
-.pickup-section { margin-top:15px; padding:15px; background:#f0f8ff; border:1px solid #aac8ff; border-radius:10px; }
-#pickupDetails { display:none; margin-top:10px; }
-/* Orders table */
-table {
-    width:100%;
-    border-collapse:collapse;
+
+.pickup-section {
     margin-top:15px;
-    font-size:14px;
-    background:white;
-    border-radius:8px;
-    overflow:hidden;
+    padding:15px;
+    background:#f0f8ff;
+    border:1px solid #aac8ff;
+    border-radius:10px;
 }
+#pickupDetails { display:none; margin-top:10px; }
+
+/* Orders table */
+table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; background:white; border-radius:8px; overflow:hidden; }
 th, td { padding:10px; border:1px solid #cce; text-align:center; }
 th { background:#007bff; color:white; }
 tr:nth-child(even){ background:#f5faff; }
-#pricePreview { font-weight:bold; color:#007b33; margin:10px 0; text-align:right; }
+.total-paid { font-weight:bold; text-align:right; margin-top:10px; color:#004080; }
+
 /* Modals */
-.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); }
-.modal.show { display:block; }
-.modal-content { background:#fff; margin:5% auto; padding:20px; border-radius:10px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; }
+.modal {
+  display:none;
+  position:fixed;
+  z-index:1000;
+  left:0; top:0; width:100%; height:100%;
+  background-color:rgba(0,0,0,0.5);
+}
+.modal.show { display:flex; justify-content:center; align-items:center; }
+.modal-content {
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  width:90%; max-width:400px;
+  max-height:80vh;
+  overflow-y:auto;
+  text-align:center;
+}
 .modal h3 { margin-top:0; color:#004080; }
-.modal label { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #eee; font-size:15px; }
+.modal label {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 12px;
+  border-bottom:1px solid #eee;
+  font-size:15px;
+}
 .modal label:hover { background:#f2f7ff; }
 .modal input[type="checkbox"] { width:20px; height:20px; }
 .modal button { margin-top:15px; width:100%; background:#007bff; }
 .modal-close { float:right; cursor:pointer; color:red; font-weight:bold; }
-.total-paid { font-weight:bold; text-align:right; margin-top:10px; color:#004080; }
+#gcashQrImg { width:200px; display:block; margin:10px auto; }
+
 </style>
 </head>
 <body>
 <div class="container">
 <h2>Welcome, {{ user.username }} 👋</h2>
+
 <h3>Place a New Laundry Order</h3>
 <form method="POST" id="orderForm">
 <label><b>Select Laundry Type:</b></label>
 <div class="laundry-types">
-<label class="laundry-option">
-<input type="radio" name="laundry_type" value="Wash-Dry-Fold" data-price="23" required>
-<img src="{{ url_for('static', filename='img/wash.png') }}">
-<div>Wash-Dry-Fold<br><small>₱23/kg</small></div>
-</label>
-<label class="laundry-option">
-<input type="radio" name="laundry_type" value="Wash-Dry-Press" data-price="60">
-<img src="{{ url_for('static', filename='img/press.png') }}">
-<div>Wash-Dry-Press<br><small>₱60/kg</small></div>
-</label>
-<label class="laundry-option">
-<input type="radio" name="laundry_type" value="Press Only" data-price="40">
-<img src="{{ url_for('static', filename='img/iron.png') }}">
-<div>Press Only<br><small>₱40/kg</small></div>
-</label>
-<label class="laundry-option" id="dryCleanOption">
-<input type="radio" name="laundry_type" value="Dry Cleaning" data-price="70">
-<img src="{{ url_for('static', filename='img/special.png') }}">
-<div>Dry Cleaning<br><small>₱70/kg</small></div>
-</label>
+  <label class="laundry-option">
+    <input type="radio" name="laundry_type" value="Wash-Dry-Fold" data-price="23" required>
+    <img src="{{ url_for('static', filename='img/wash.png') }}">
+    <div>Wash-Dry-Fold<br><small>₱23/kg</small></div>
+    <button type="button" class="edit-btn">Edit</button>
+    <button type="button" class="update-btn">Update</button>
+  </label>
+  <label class="laundry-option">
+    <input type="radio" name="laundry_type" value="Wash-Dry-Press" data-price="60">
+    <img src="{{ url_for('static', filename='img/press.png') }}">
+    <div>Wash-Dry-Press<br><small>₱60/kg</small></div>
+    <button type="button" class="edit-btn">Edit</button>
+    <button type="button" class="update-btn">Update</button>
+  </label>
+  <label class="laundry-option">
+    <input type="radio" name="laundry_type" value="Press Only" data-price="40">
+    <img src="{{ url_for('static', filename='img/iron.png') }}">
+    <div>Press Only<br><small>₱40/kg</small></div>
+    <button type="button" class="edit-btn">Edit</button>
+    <button type="button" class="update-btn">Update</button>
+  </label>
+  <label class="laundry-option" id="dryCleanOption">
+    <input type="radio" name="laundry_type" value="Dry Cleaning" data-price="70">
+    <img src="{{ url_for('static', filename='img/special.png') }}">
+    <div>Dry Cleaning<br><small>₱70/kg</small></div>
+    <button type="button" class="edit-btn">Edit</button>
+    <button type="button" class="update-btn">Update</button>
+  </label>
 </div>
+
 <label>Weight (kg):</label>
 <input type="number" name="weight" step="0.1" min="0.5" required>
+<!-- price preview remains dynamic -->
 <p id="pricePreview">Total: ₱0.00</p>
+
 <button type="submit" id="submitOrder">Submit Order</button>
-<button type="button" id="updateBtn">Update Order</button>
 <button type="button" id="payBtn" disabled>Pay Order</button>
 </form>
 
 <h3>My Laundry Orders</h3>
 <table id="ordersTable">
-<tr><th>ID</th><th>Type</th><th>Weight</th><th>Price</th><th>Pickup</th><th>Status</th><th>Date Created</th></tr>
+<tr>
+<th>ID</th><th>Type</th><th>Weight</th><th>Price</th><th>Pickup</th><th>Status</th><th>Date Created</th><th>Action</th>
+</tr>
 {% for o in orders %}
 <tr data-id="{{ o.id }}">
 <td>{{ o.id }}</td>
-<td>{{ o.laundry_type }}</td>
-<td>{{ o.weight_kg }} kg</td>
+<td class="type-cell">{{ o.laundry_type }}</td>
+<td class="weight-cell">{{ o.weight_kg }} kg</td>
 <td class="order-price">₱{{ "%.2f"|format(o.price) }}</td>
-<td>{% if o.pickup_requested %}Yes<br><small>Floor {{ o.floor_number }}, Unit {{ o.unit_number }}</small>{% else %}No{% endif %}</td>
+<td class="pickup-cell">{% if o.pickup_requested %}Yes<br><small>Floor {{ o.floor_number }}, Unit {{ o.unit_number }}</small>{% else %}No{% endif %}</td>
 <td class="order-status">{{ o.status }}</td>
 <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
+<td>
+{% if o.status != 'Paid' %}
+<button class="pay-order-btn">Pay</button>
+<button class="edit-order-btn">Edit</button>
+<button class="update-order-btn">Update</button>
+{% else %}Paid{% endif %}
+</td>
 </tr>
 {% else %}
-<tr><td colspan="7">No orders yet.</td></tr>
+<tr><td colspan="8">No orders yet.</td></tr>
 {% endfor %}
 </table>
 <p class="total-paid" id="totalPaid">Total Paid: ₱0.00</p>
+
 <a href="{{ url_for('logout') }}" class="logout-box">Logout</a>
 </div>
 
 <!-- Dry Cleaning Modal -->
 <div id="dryCleanModal" class="modal">
-<div class="modal-content">
-<span class="modal-close" id="closeModal">&times;</span>
-<h3>Select Dry Cleaning Items</h3>
-<div id="dryItemsList"></div>
-<button id="addDryItems">OK</button>
-</div>
+  <div class="modal-content">
+    <span class="modal-close" id="closeModal">&times;</span>
+    <h3>Select Dry Cleaning Items</h3>
+    <div id="dryItemsList"></div>
+    <button id="addDryItems">OK</button>
+  </div>
 </div>
 
 <!-- Payment Modal -->
 <div id="paymentModal" class="modal">
-<div class="modal-content">
-<h3>Select Payment Method</h3>
-<p id="modalTotal">Total: ₱0.00</p>
-<button id="cashBtn">Cash</button>
-<button id="gcashBtn">GCash</button>
-</div>
+  <div class="modal-content">
+    <h3>Select Payment Method</h3>
+    <p id="modalTotal">Total: ₱0.00</p>
+    <button id="cashBtn">Cash</button>
+    <button id="gcashBtn">GCash</button>
+    <img id="gcashQrImg" src="{{ url_for('static', filename='img/gcash_qr.png') }}" style="display:none">
+  </div>
 </div>
 
 <script>
@@ -191,14 +277,14 @@ tr:nth-child(even){ background:#f5faff; }
 const laundryOptions = document.querySelectorAll('.laundry-option');
 let selectedType = '';
 laundryOptions.forEach(option => {
-    const input = option.querySelector('input');
-    option.addEventListener('click', ()=>{
-        laundryOptions.forEach(o=>o.classList.remove('selected'));
-        option.classList.add('selected');
-        input.checked = true;
-        selectedType = input.value;
-        updatePrice();
-    });
+  const input = option.querySelector('input');
+  option.addEventListener('click', ()=>{
+    laundryOptions.forEach(o=>o.classList.remove('selected'));
+    option.classList.add('selected');
+    input.checked = true;
+    selectedType = input.value;
+    updatePrice();
+  });
 });
 
 // ===== Dry Cleaning =====
@@ -208,43 +294,52 @@ const closeModal = document.getElementById("closeModal");
 const dryItemsList = document.getElementById("dryItemsList");
 const addDryItems = document.getElementById("addDryItems");
 let selectedDryItems = [];
-const dryItems = [ ["Barong/Blouse",400],["Bath Robe",350],["Belt",250],["Blazer",350], ["Bolero",270],["Cap/Bonnet/Earmuffs/Facemask",260],["Christening/Baptismal Apparel",500], ["Coat",350],["Dress-Plain",350],["Dress/Gown-beaded/Kimona",1000],["Gloves leather/Mittens/socks",350], ["Gown-Filipiniana/Jusi/Embroidered",1000],["Jacket",350],["Leather Jacket",400], ["Leather Overall/rider's suit",1200],["Leather Pants/skirt",450],["Necktie/Handkerchief",250], ["Overall/Cover-all",500],["Overcoat",500],["Pants/Jeans/Slacks",285], ["Scarf/Shawl/Stola/Lingerie",270],["Shorts/Swimwear",260], ["Skirt",260], ["Sotana/Priest's vestment",350],["Sweater/Cardigan",350],["Toga Robe",350], ["Top - Long Sleeve",285],["Top - Short Sleeve",270],["Top - Sleeveless",250],["Vest",270],["Vestment/Saint clothing/Cape",2000],["Wedding Gown & Trane (w/accessories)",2000] ];
-// render dry items
+const dryItems = [
+  ["Barong/Blouse",400],["Bath Robe",350],["Belt",250],["Blazer",350],
+  ["Bolero",270],["Cap/Bonnet/Earmuffs/Facemask",260],["Christening/Baptismal Apparel",500],
+  ["Coat",350],["Dress-Plain",350],["Dress/Gown-beaded/Kimona",1000],["Gloves leather/Mittens/socks",350],
+  ["Gown-Filipiniana/Jusi/Embroidered",1000],["Jacket",350],["Leather Jacket",400],
+  ["Leather Overall/rider's suit",1200],["Leather Pants/skirt",450],["Necktie/Handkerchief",250],
+  ["Overall/Cover-all",500],["Overcoat",500],["Pants/Jeans/Slacks",285],
+  ["Scarf/Shawl/Stola/Lingerie",270],["Shorts/Swimwear",260],["Skirt",260],
+  ["Sotana/Priest's vestment",350],["Sweater/Cardigan",350],["Toga Robe",350],
+  ["Top - Long Sleeve",285],["Top - Short Sleeve",270],["Top - Sleeveless",250],
+  ["Vest",270],["Vestment/Saint clothing/Cape",2000],["Wedding Gown & Trane (w/accessories)",2000]
+];
 let dryHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
 dryItems.forEach(([name,price])=>{
-    dryHTML += `<label><span>${name}</span><span>₱${price}</span><input type="checkbox" value="${name}"></label>`;
+  dryHTML += `<label><span>${name}</span><span>₱${price}</span><input type="checkbox" value="${name}"></label>`;
 });
 dryHTML += '</div>';
 dryItemsList.innerHTML = dryHTML;
 dryCleanOption.addEventListener("click", ()=>{ dryModal.style.display="block"; });
 closeModal.addEventListener("click", ()=>{ dryModal.style.display="none"; });
 addDryItems.addEventListener("click", ()=>{
-    selectedDryItems = [...dryItemsList.querySelectorAll("input:checked")].map(i=>i.value);
-    if(selectedDryItems.length) alert("Added Dry Cleaning Items:\n" + selectedDryItems.join(", "));
-    dryModal.style.display="none";
-    updatePrice();
+  selectedDryItems = [...dryItemsList.querySelectorAll("input:checked")].map(i=>i.value);
+  if(selectedDryItems.length) alert("Added Dry Cleaning Items:\n" + selectedDryItems.join(", "));
+  dryModal.style.display="none";
+  updatePrice();
 });
 
 // ===== Pickup Toggle =====
 const pickupCheck = document.getElementById('pickupCheck');
 const pickupDetails = document.getElementById('pickupDetails');
-pickupCheck?.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; updatePrice(); });
+pickupCheck.addEventListener('change', ()=>{ pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none'; updatePrice(); });
 
 // Floor & Room
 const floorSelect = document.getElementById('floorSelect');
 const roomSelect = document.getElementById('roomSelect');
-floorSelect?.addEventListener('change', ()=>{
-    const floor = parseInt(floorSelect.value);
-    roomSelect.innerHTML = '<option value="">Select Room</option>';
-    if(floor){
-        for(let i=1;i<=5;i++){
-            const room = floor*100 + i;
-            const opt = document.createElement('option');
-            opt.value = room;
-            opt.textContent = room;
-            roomSelect.appendChild(opt);
-        }
+floorSelect.addEventListener('change', ()=>{
+  const floor = parseInt(floorSelect.value);
+  roomSelect.innerHTML = '<option value="">Select Room</option>';
+  if(floor){
+    for(let i=1;i<=5;i++){
+      const room = floor*100 + i;
+      const opt = document.createElement('option');
+      opt.value = room; opt.textContent = room;
+      roomSelect.appendChild(opt);
     }
+  }
 });
 
 // ===== Price Calculation =====
@@ -252,17 +347,17 @@ const weightInput = document.querySelector('input[name="weight"]');
 const pricePreview = document.getElementById('pricePreview');
 const modalTotal = document.getElementById('modalTotal');
 function updatePrice(){
-    let total = 0;
-    const weight = parseFloat(weightInput.value) || 0;
-    const selectedLaundryInput = document.querySelector('input[name="laundry_type"]:checked');
-    if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
-    selectedDryItems.forEach(item=>{
-        const price = dryItems.find(([n])=>n===item)[1];
-        total += price;
-    });
-    if(pickupCheck?.checked) total += 20;
-    pricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
-    if(modalTotal) modalTotal.textContent = `Total: ₱${total.toFixed(2)}`;
+  let total = 0;
+  const weight = parseFloat(weightInput.value) || 0;
+  const selectedLaundryInput = document.querySelector('input[name="laundry_type"]:checked');
+  if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
+  selectedDryItems.forEach(item=>{
+    const price = dryItems.find(([n])=>n===item)[1];
+    total += price;
+  });
+  if(pickupCheck.checked) total += 20;
+  pricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
+  if(modalTotal) modalTotal.textContent = `Total: ₱${total.toFixed(2)}`;
 }
 weightInput.addEventListener('input', updatePrice);
 
@@ -270,48 +365,57 @@ weightInput.addEventListener('input', updatePrice);
 const submitOrderBtn = document.getElementById('submitOrder');
 const payBtn = document.getElementById('payBtn');
 submitOrderBtn.addEventListener('click', ()=>{
-    setTimeout(()=>{ payBtn.disabled = false; }, 100); // enable pay button after submit
+  setTimeout(()=>{ payBtn.disabled = false; }, 100);
 });
 
 // ===== Payment Modal =====
 const paymentModal = document.getElementById('paymentModal');
 const cashBtn = document.getElementById("cashBtn");
 const gcashBtn = document.getElementById("gcashBtn");
-const ordersTable = document.getElementById("ordersTable");
-const totalPaidDisplay = document.getElementById("totalPaid");
-
-function updateTotalPaid(){
-    let totalPaid = 0;
-    document.querySelectorAll("#ordersTable .order-status").forEach((statusCell)=>{
-        if(statusCell.textContent.trim() === "Paid"){
-            const priceCell = statusCell.parentElement.querySelector(".order-price");
-            const priceText = priceCell.textContent.replace('₱','');
-            totalPaid += parseFloat(priceText);
-        }
-    });
-    totalPaidDisplay.textContent = `Total Paid: ₱${totalPaid.toFixed(2)}`;
-}
-
-function payOrders(method){
-    document.querySelectorAll("#ordersTable tr[data-id]").forEach(row=>{
-        const statusCell = row.querySelector(".order-status");
-        if(statusCell.textContent.trim() !== "Paid"){
-            statusCell.textContent = "Paid";
-        }
-    });
-    updateTotalPaid();
-    paymentModal.classList.remove('show');
-    alert(method === "cash" ? "Pay cash upon pickup. Thank you!" : "Scan GCash QR to pay. Thank you!");
-}
+const gcashQrImg = document.getElementById("gcashQrImg");
 
 payBtn.addEventListener('click', ()=> paymentModal.classList.add('show'));
-cashBtn.addEventListener('click', ()=> payOrders("cash"));
-gcashBtn.addEventListener('click', ()=> payOrders("gcash"));
+cashBtn.addEventListener('click', ()=>{
+  paymentModal.classList.remove('show');
+  alert("Pay cash upon pickup. Thank you!");
+});
+gcashBtn.addEventListener('click', ()=>{
+  gcashQrImg.style.display='block';
+  alert("Scan GCash QR to pay. Thank you!");
+  setTimeout(()=> paymentModal.classList.remove('show'),2000);
+});
 
-window.addEventListener('click', e=>{ if(e.target==paymentModal) paymentModal.classList.remove('show'); });
+window.addEventListener('click', e=>{
+  if(e.target==paymentModal) paymentModal.classList.remove('show');
+});
+
+// ===== Orders Table Dynamic Update =====
+function updateTotalPaid(){
+  let totalPaid=0;
+  document.querySelectorAll("#ordersTable .order-status").forEach(statusCell=>{
+    if(statusCell.textContent.trim()==="Paid"){
+      const priceCell = statusCell.parentElement.querySelector(".order-price");
+      totalPaid += parseFloat(priceCell.textContent.replace('₱',''));
+    }
+  });
+  document.getElementById("totalPaid").textContent = `Total Paid: ₱${totalPaid.toFixed(2)}`;
+}
+
+// Add event for dynamic Pay button per row
+document.querySelectorAll('.pay-order-btn').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    paymentModal.classList.add('show');
+    const row = e.target.closest('tr');
+    // Mark as Paid
+    row.querySelector('.order-status').textContent="Paid";
+    row.querySelector('.pay-order-btn').style.display="none";
+    updateTotalPaid();
+  });
+});
 </script>
 </body>
 </html>
+
 
 
 
