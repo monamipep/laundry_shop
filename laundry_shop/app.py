@@ -7,21 +7,22 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import pymysql
 import os
 import calendar
+from sqlalchemy import text
 
-# Flask app 
+# --- Flask app ---
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 app.secret_key = "mysecretkey"
 
-# MySQL driver 
+# --- MySQL driver ---
 pymysql.install_as_MySQLdb()
 
-#  Database config 
+# --- Database config ---
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:@localhost/laundry_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# DATABASE MODELS 
+# --- DATABASE MODELS ---
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
@@ -44,7 +45,8 @@ class LaundryOrder(db.Model):
     unit_number = db.Column(db.String(10))
     date_created = db.Column(db.DateTime, default=datetime.now)
     date_updated = db.Column(db.DateTime, onupdate=datetime.now)
-
+    payment_status = db.Column(db.String(20), default="Pending")
+    is_paid = db.Column(db.Boolean, default=False)
 
 # New: persistent Income table — income entries are independent of users/orders
 class Income(db.Model):
@@ -57,7 +59,7 @@ class Income(db.Model):
         return f"<Income {self.date} ₱{self.total}>"
 
 
-# Helper 
+# --- Helper ---
 def get_price_per_kg(laundry_type):
     mapping = {
         "Wash-Dry-Fold": 23,
@@ -69,18 +71,22 @@ def get_price_per_kg(laundry_type):
 
 
 def order_to_dict(order):
-    """Return a JSON-serializable dict for an order — safe when user is missing."""
     return {
         'id': order.id,
-        'customer': order.user.username if getattr(order, 'user', None) else 'Deleted User',
-        'type': order.laundry_type or 'N/A',
-        'weight': float(order.weight_kg) if order.weight_kg is not None else 0,
-        'price': float(order.price) if order.price is not None else 0.0,
-        'pickup': bool(order.pickup_requested),
-        'location': (f"Floor {order.floor_number or '-'}, Unit {order.unit_number or '-'}") if order.pickup_requested else '—',
+        'customer': order.user.username if order.user else 'Unknown',
+        'laundry_type': order.laundry_type,
+        'weight_kg': order.weight_kg,
+        'price': float(order.price) if order.price else 0,
+        'pickup_requested': order.pickup_requested,
+        'floor_number': order.floor_number,
+        'unit_number': order.unit_number,
         'status': order.status,
-        'date_created': order.date_created.strftime('%Y-%m-%d %H:%M') if order.date_created else 'N/A'
+        'payment_status': order.payment_status,
+        'is_paid': order.is_paid,
+        'date_created': order.date_created.strftime('%Y-%m-%d %H:%M') if order.date_created else None,
+        'date_updated': order.date_updated.strftime('%Y-%m-%d %H:%M') if getattr(order, 'date_updated', None) else None
     }
+
 
 
 def add_income_entry(entry_date: date, amount: float):
@@ -103,32 +109,42 @@ def add_income_entry(entry_date: date, amount: float):
         db.session.rollback()
 
 
-#  ROUTES 
+# --- ROUTES ---
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
 
-# LOGIN 
+# --- LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
+
+        # Case-sensitive username check
+        user = User.query.filter(text("BINARY username = :username")).params(username=username).first()
+
         if user and check_password_hash(user.password, password):
+            # Store user info in session
             session['user_id'] = user.id
-            session['role'] = user.role
+            session['role'] = user.role  # assuming you have a 'role' column: 'admin' or 'user'
+
+            flash("Login successful!", "success")
+
+            # Redirect based on role
             if user.role == 'admin':
                 return redirect(url_for('admin_dashboard'))
             else:
                 return redirect(url_for('user_dashboard'))
         else:
-            flash("Invalid username or password!", "danger")
+            flash("Invalid username or password!", "error")
+            return redirect(url_for('login'))
+
     return render_template('login.html')
 
 
-#  REGISTER 
+# --- REGISTER ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -149,7 +165,7 @@ def register():
     return render_template('register.html')
 
 
-# USER DASHBOARD 
+# --- USER DASHBOARD ---
 @app.route('/user', methods=['GET', 'POST'])
 def user_dashboard():
     if 'user_id' not in session:
@@ -160,16 +176,38 @@ def user_dashboard():
         session.clear()
         return redirect(url_for('login'))
 
+    
+    
+
     if request.method == 'POST':
-        laundry_type = request.form['laundry_type']
-        weight = float(request.form['weight'])
+        # Validate laundry type
+        laundry_type = request.form.get('laundry_type')
+        if not laundry_type:
+            flash("Please select a laundry type.", "danger")
+            return redirect(url_for('user_dashboard'))
+
+        # Validate weight
+        try:
+            weight = float(request.form.get('weight', 0))
+            if weight <= 0:
+                flash("Please enter a valid weight.", "danger")
+                return redirect(url_for('user_dashboard'))
+        except ValueError:
+            flash("Please enter a valid weight.", "danger")
+            return redirect(url_for('user_dashboard'))
+
+        # Pickup/delivery
         pickup_requested = 'pickup_requested' in request.form
         floor = request.form.get('floor_number') if pickup_requested else None
         unit = request.form.get('unit_number') if pickup_requested else None
+
+        # Base price calculation
         price = get_price_per_kg(laundry_type) * weight
         if pickup_requested:
-            price += 20
+            price += 20  # delivery fee
 
+       
+        # Create new order
         new_order = LaundryOrder(
             user_id=user.id,
             laundry_type=laundry_type,
@@ -183,21 +221,54 @@ def user_dashboard():
         db.session.add(new_order)
         db.session.commit()
 
-        # Persist income at creation time so deleting the user/order later won't remove the income record.
-        try:
-            order_date = (new_order.date_created.date() if new_order.date_created else datetime.now().date())
-        except Exception:
-            order_date = datetime.now().date()
+        # Persist income at creation time
+        order_date = new_order.date_created.date() if new_order.date_created else datetime.now().date()
         add_income_entry(order_date, price)
 
         flash("Order submitted successfully!", "success")
         return redirect(url_for('user_dashboard'))
 
+    # Fetch user orders
     orders = LaundryOrder.query.filter_by(user_id=user.id).order_by(LaundryOrder.date_created.desc()).all()
     return render_template('user_dashboard.html', user=user, orders=orders)
 
 
-#  ADMIN DASHBOARD 
+
+
+
+
+
+
+
+#payment admin
+@app.route('/api/admin_update_payment/<int:order_id>', methods=['POST'])
+def admin_update_payment(order_id):
+    if 'role' not in session or session['role'] != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    order = LaundryOrder.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+
+    try:
+        order.payment_status = "Paid"
+        order.is_paid = True
+        # Only set date_updated if it exists
+        if hasattr(order, 'date_updated'):
+            order.date_updated = datetime.now()
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()   # <- This prints full error in console
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+
+
+# --- ADMIN DASHBOARD ---
 @app.route('/admin')
 def admin_dashboard():
     if 'user_id' not in session:
@@ -244,13 +315,12 @@ def admin_dashboard():
         return redirect(url_for('login'))
 
 
-# --- UPDATE ORDER STATUS (AJAX) ---
+## --- Update order status (Admin: Ready, Completed, etc.) ---
 @app.route('/api/update_status/<int:order_id>', methods=['POST'])
 def api_update_status(order_id):
     order = LaundryOrder.query.get(order_id)
     if not order:
         return jsonify({'success': False, 'error': 'Order not found'}), 404
-
     try:
         data = request.get_json(force=True)
         if not data or 'status' not in data:
@@ -259,21 +329,37 @@ def api_update_status(order_id):
         order.status = data['status']
         order.date_updated = datetime.now()
         db.session.commit()
-
         return jsonify({'success': True, 'order': order_to_dict(order)})
     except Exception as e:
-        print("🔥 Update Error:", e)
+        print("🔥 Update Status Error:", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Server error'}), 500
 
 
-# --- DELETE ORDER (AJAX) ---
-@app.route('/api/delete_order/<int:order_id>', methods=['DELETE'])
+# --- Update payment status (User: Pay button) ---
+@app.route('/api/update_payment/<int:order_id>', methods=['POST'])
+def api_update_payment(order_id):
+    order = LaundryOrder.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+    try:
+        order.payment_status = "Paid"
+        order.is_paid = True
+        order.date_updated = datetime.now()
+        db.session.commit()
+        return jsonify({'success': True, 'order': order_to_dict(order)})
+    except Exception as e:
+        print("🔥 Payment Update Error:", e)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Server error'}), 500
+
+
+# --- Delete order (Admin) ---
+@app.route('/api/delete_order/<int:order_id>', methods=['POST'])
 def api_delete_order(order_id):
     order = LaundryOrder.query.get(order_id)
     if not order:
         return jsonify({'success': False, 'error': 'Order not found'}), 404
-
     try:
         db.session.delete(order)
         db.session.commit()
@@ -284,6 +370,22 @@ def api_delete_order(order_id):
         return jsonify({'success': False, 'error': 'Server error'}), 500
 
 
+# --- ACCEPT ORDER (AJAX) ---
+@app.route('/api/accept_order/<int:order_id>', methods=['POST'])
+def api_accept_order(order_id):
+    order = LaundryOrder.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'error': 'Order not found'}), 404
+
+    try:
+        order.status = "Accepted"
+        order.date_updated = datetime.now()
+        db.session.commit()
+        return jsonify({'success': True, 'order': order_to_dict(order)})
+    except Exception as e:
+        print("🔥 Accept Order Error:", e)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Server error'}), 500
 
 # --- INCOME BY MONTH & DAY ---
 @app.route('/api/income_by_month')
@@ -435,11 +537,3 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
-
-
-
-
-
