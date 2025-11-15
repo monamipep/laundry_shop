@@ -221,21 +221,19 @@ tr:nth-child(even){ background:#f5faff; }
       {% endif %}
     </td>
     <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
-    <td>
-      {% if o.payment_status != 'Paid' %}
-        <button class="pay-order-btn">Pay</button>
-        <button class="update-order-btn">Update</button>
-      {% else %}
-        Paid
-      {% endif %}
-    </td>
+    <td class="action-cell">
+  <button class="pay-order-btn" data-id="{{ o.id }}">
+    {{ 'Pay' if o.payment_status != 'Paid' else 'Paid' }}
+  </button>
+  <button class="update-order-btn" data-id="{{ o.id }}">Update</button>
+</td>
   </tr>
   {% else %}
   <tr><td colspan="9">No orders yet.</td></tr>
   {% endfor %}
 </table>
 
-<p class="total-paid" id="totalPaid">Total Paid: ₱0.00</p>
+
 <a href="{{ url_for('logout') }}" class="logout-box">Logout</a>
 
 <!-- Delivery Modal -->
@@ -516,9 +514,21 @@ function updateUpdatePrice(){
 function attachTableButtons(row){
     row.querySelector('.pay-order-btn').addEventListener('click', () => {
         paymentModal.classList.add('show');
-        gcashQrImg.style.display = 'none';
-        gcashText.style.display = 'none';
-        cashConfirm.style.display = 'none';
+
+        const isPaid = row.querySelector('.payment-status').textContent.trim() === 'Paid';
+
+        if(isPaid){
+            // Already paid: show info instead of payment options
+            cashConfirm.style.display = 'block';
+            cashConfirm.textContent = 'This order is already paid.';
+            gcashQrImg.style.display = 'none';
+            gcashText.style.display = 'none';
+        } else {
+            // Not paid: show normal payment options
+            cashConfirm.style.display = 'none';
+            gcashQrImg.style.display = 'none';
+            gcashText.style.display = 'none';
+        }
     });
 
     row.querySelector('.update-order-btn').addEventListener('click', () => {
@@ -539,6 +549,7 @@ function attachTableButtons(row){
         updateUpdatePrice();
     });
 }
+
 
 // Attach existing rows
 document.querySelectorAll('#ordersTable tr').forEach(row => {
@@ -604,6 +615,7 @@ confirmUpdate.addEventListener('click', ()=>{
 
 </body>
 </html>
+
 
 
 
