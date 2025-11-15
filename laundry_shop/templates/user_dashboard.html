@@ -75,7 +75,8 @@ input:checked + .slider { background-color: #007bff; }
 input:checked + .slider:before { transform: translateX(26px); }
 
 .pickup-section { margin-top:15px; padding:15px; background:#f0f8ff; border:1px solid #aac8ff; border-radius:10px; }
-#pickupDetails, #updatePickupDetails { display:none; margin-top:10px; }
+#pickupDetails { display:none; margin-top:10px; }
+
 table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; background:white; border-radius:8px; overflow:hidden; }
 th, td { padding:10px; border:1px solid #cce; text-align:center; }
 th { background:#007bff; color:white; }
@@ -87,6 +88,34 @@ tr:nth-child(even){ background:#f5faff; }
 .modal.show { display:flex; justify-content:center; align-items:center; }
 .modal-content { background:white; padding:20px; border-radius:10px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; position:relative; text-align:center; }
 .close { position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px; }
+
+/* Centered Delivery Modal */
+#deliveryPopup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 9999;
+}
+#deliveryPopup.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+#deliveryPopup .modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 280px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
 </style>
 </head>
 <body>
@@ -164,7 +193,7 @@ tr:nth-child(even){ background:#f5faff; }
     <th>Type</th>
     <th>Weight</th>
     <th>Price</th>
-    <th>Pickup</th>
+    <th>Delivery</th>
     <th>Status</th>
     <th>Payment Status</th>
     <th>Date Created</th>
@@ -207,59 +236,73 @@ tr:nth-child(even){ background:#f5faff; }
 </table>
 
 <p class="total-paid" id="totalPaid">Total Paid: ₱0.00</p>
-
 <a href="{{ url_for('logout') }}" class="logout-box">Logout</a>
 
-
-<!-- Payment Modal -->
+<!-- Delivery Modal -->
+<div id="deliveryPopup" class="modal">
+  <div class="modal-content">
+    <h3>Order Summary</h3>
+    <p id="deliveryMessage"></p>
+    <div style="margin-top:15px;">
+      <button id="confirmDelivery" type="button">OK</button>
+      <button id="cancelDelivery" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+<!-- PAYMENT MODAL -->
 <div id="paymentModal" class="modal">
-  <div class="modal-content" style="text-align:center;">
-    <span class="close" id="closePaymentModal">&times;</span>
+  <div class="modal-content">
+    <span id="closePaymentModal" class="close">&times;</span>
     <h3>Choose Payment Method</h3>
-    <button id="cashBtn">Cash</button>
-    <button id="gcashBtn">Gcash</button>
-    <p id="cashConfirm" style="display:none; color:green; font-weight:bold;">Please pay in cash upon pickup.</p>
-    <img id="gcashQrImg" src="{{ url_for('static', filename='img/gcash_qr.png') }}" 
-         style="display:none; width:200px; margin: 15px auto; display:block;">
-    <p id="gcashText" style="display:none;">Scan the QR code to pay via GCash.</p>
+    <button id="cashBtn" type="button">Cash</button>
+    <button id="gcashBtn" type="button">Gcash</button>
+    <div id="gcashQrImg" style="display:none; margin-top:10px;">
+      <img src="{{ url_for('static', filename='img/gcash_qr.png') }}" alt="Gcash QR" style="width:150px;">
+    </div>
+    <p id="gcashText" style="display:none;">Scan QR to pay</p>
+    <p id="cashConfirm" style="display:none; color:green; font-weight:bold;">Pay at the counter when you pick up!</p>
   </div>
 </div>
 
-<!-- Update Modal -->
+<!-- UPDATE MODAL -->
 <div id="updateModal" class="modal">
   <div class="modal-content">
-    <span class="close" id="closeUpdateModal">&times;</span>
+    <span id="closeUpdateModal" class="close">&times;</span>
     <h3>Update Order</h3>
+    <label><b>Select Laundry Type:</b></label>
     <div id="updateLaundryTypes" class="laundry-types"></div>
     <label>Weight (kg):</label>
     <input type="number" id="updateWeight" step="0.1" min="0.5">
     <p id="updatePricePreview">Total: ₱0.00</p>
-    <label><b>Pickup?</b></label>
-    <label class="switch">
-      <input type="checkbox" id="updatePickupCheck">
-      <span class="slider"></span>
-    </label>
-    <div id="updatePickupDetails">
-      <label>Floor:
-        <select id="updateFloorSelect">
-          <option value="">Select Floor</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-      </select>
+    <label><b>Delivery </b></label>
+    <div class="pickup-section">
+      <label class="switch">
+        <input type="checkbox" id="updatePickupCheck">
+        <span class="slider"></span>
       </label>
-      <label>Room/Unit:
-        <select id="updateRoomSelect">
-          <option value="">Select Room</option>
-        </select>
-      </label>
+      Delivery (+₱70)
+      <div id="updatePickupDetails" style="display:none; margin-top:10px;">
+        <label>Floor:
+          <select id="updateFloorSelect">
+            <option value="">Select Floor</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+          </select>
+        </label>
+        <label>Room/Unit:
+          <select id="updateRoomSelect">
+            <option value="">Select Room</option>
+          </select>
+        </label>
+      </div>
     </div>
-    <button id="confirmUpdate">Confirm Update</button>
+    <button id="confirmUpdate" type="button" style="margin-top:10px;">Confirm Update</button>
   </div>
 </div>
 
@@ -276,25 +319,26 @@ laundryOptions.forEach(option => {
     });
 });
 
-// ===== PICKUP TOGGLE =====
+// ===== DELIVERY TOGGLE =====
 const pickupCheck = document.getElementById('pickupCheck');
 const pickupDetails = document.getElementById('pickupDetails');
-pickupCheck.addEventListener('change', ()=> {
-    pickupDetails.style.display = pickupCheck.checked?'block':'none';
+pickupCheck.addEventListener('change', () => {
+    pickupDetails.style.display = pickupCheck.checked ? 'block' : 'none';
     updatePrice();
 });
 
 // ===== FLOOR & ROOM =====
 const floorSelect = document.getElementById('floorSelect');
 const roomSelect = document.getElementById('roomSelect');
-floorSelect.addEventListener('change', ()=> {
+floorSelect.addEventListener('change', () => {
     const floor = parseInt(floorSelect.value);
     roomSelect.innerHTML = '<option value="">Select Room</option>';
-    if(floor){
-        for(let i=1;i<=5;i++){
-            const room = floor*100+i;
+    if(floor) {
+        for(let i=1; i<=5; i++){
+            const room = floor*100 + i;
             const opt = document.createElement('option');
-            opt.value=room; opt.textContent=room;
+            opt.value = room;
+            opt.textContent = room;
             roomSelect.appendChild(opt);
         }
     }
@@ -303,32 +347,125 @@ floorSelect.addEventListener('change', ()=> {
 // ===== PRICE CALCULATION =====
 const weightInput = document.querySelector('input[name="weight"]');
 const pricePreview = document.getElementById('pricePreview');
-
 function updatePrice(){
     let total=0;
     const laundry = document.querySelector('input[name="laundry_type"]:checked');
     const weight = parseFloat(weightInput.value)||0;
     if(laundry) total += weight*parseFloat(laundry.dataset.price);
-    if(pickupCheck.checked) total+=20;
+    if(pickupCheck.checked) total+=70;
     pricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
 }
-
 weightInput.addEventListener('input', updatePrice);
-document.querySelectorAll('input[name="laundry_type"]').forEach(i=>i.addEventListener('change', updatePrice));
+document.querySelectorAll('input[name="laundry_type"]').forEach(i => i.addEventListener('change', updatePrice));
 
-// ===== SUBMIT ORDER =====
+// ===== DELIVERY POPUP =====
 const submitOrder = document.getElementById('submitOrder');
-submitOrder.addEventListener('click', e=>{
+const deliveryPopup = document.getElementById('deliveryPopup');
+const deliveryMessage = document.getElementById('deliveryMessage');
+const confirmDelivery = document.getElementById('confirmDelivery');
+const cancelDelivery = document.getElementById('cancelDelivery');
+
+submitOrder.addEventListener('click', e => {
     e.preventDefault();
     const laundry = document.querySelector('input[name="laundry_type"]:checked');
     if(!laundry) return alert("Please select a laundry type.");
     const weight = parseFloat(weightInput.value)||0;
-    if(weight<=0) return alert("Please enter a valid weight.");
-    alert(`Order submitted!\nType: ${laundry.value}\nWeight: ${weight}kg\nTotal: ${pricePreview.textContent}`);
-    orderForm.submit();
+    if(weight <= 0) return alert("Please enter a valid weight.");
+
+    let total = weight*parseFloat(laundry.dataset.price);
+    const pickupRequested = pickupCheck.checked;
+    if(pickupRequested) total += 70;
+
+    deliveryMessage.innerHTML = `
+        Type: ${laundry.value}<br>
+        Weight: ${weight} kg<br>
+        Delivery: ${pickupRequested ? 'Yes (+₱70)' : 'No'}<br>
+        Total: ₱${total.toFixed(2)}
+    `;
+    deliveryPopup.classList.add('show');
+
+    // Store data for confirmation
+    deliveryPopup.dataset.laundryType = laundry.value;
+    deliveryPopup.dataset.weight = weight;
+    deliveryPopup.dataset.total = total.toFixed(2);
+    deliveryPopup.dataset.pickupRequested = pickupRequested;
+    deliveryPopup.dataset.floor = floorSelect.value;
+    deliveryPopup.dataset.unit = roomSelect.value;
 });
 
-// ===== PAYMENT MODAL =====
+// ===== CONFIRM DELIVERY WITH AJAX =====
+confirmDelivery.addEventListener('click', async () => {
+    const laundry = document.querySelector('input[name="laundry_type"]:checked');
+    if(!laundry) return alert("Please select a laundry type.");
+
+    const weight = parseFloat(weightInput.value) || 0;
+    if(weight <= 0) return alert("Please enter a valid weight.");
+
+    const pickupRequested = pickupCheck.checked;
+    const floorNumber = pickupRequested ? floorSelect.value : null;
+    const unitNumber = pickupRequested ? roomSelect.value : null;
+
+    // Calculate price
+    let price = weight * parseFloat(laundry.dataset.price);
+    if(pickupRequested) price += 70;
+
+    // Prepare payload
+    const payload = {
+        laundry_type: laundry.value,
+        weight: weight,
+        price: price,
+        pickup_requested: pickupRequested,
+        floor_number: floorNumber,
+        unit_number: unitNumber
+    };
+
+    try {
+        const response = await fetch("/add_order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if(response.ok){
+            // Add new row to table
+            const ordersTable = document.getElementById('ordersTable');
+            const row = ordersTable.insertRow(-1);
+            row.setAttribute('data-id', data.id);
+            row.innerHTML = `
+                <td>${data.id}</td>
+                <td class="type-cell">${data.laundry_type}</td>
+                <td class="weight-cell">${data.weight} kg</td>
+                <td class="order-price">₱${data.price.toFixed(2)}</td>
+                <td class="pickup-cell">${data.pickup_requested ? `Yes<br>Floor ${data.floor_number}, Unit ${data.unit_number}` : 'No'}</td>
+                <td class="order-status">Pending</td>
+                <td class="payment-status">Pending</td>
+                <td>${data.date_created}</td>
+                <td>
+                    <button class="pay-order-btn">Pay</button>
+                    <button class="update-order-btn">Update</button>
+                </td>
+            `;
+            attachTableButtons(row); // Attach pay/update events
+
+            // Reset form & hide modal
+            document.getElementById('orderForm').reset();
+            pickupDetails.style.display = 'none';
+            deliveryPopup.classList.remove('show');
+
+            alert("Order submitted successfully!");
+        } else {
+            alert("Error adding order: " + (data.message || "Unknown error"));
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Failed to add order. Please try again.");
+    }
+});
+
+
+// ===== PAYMENT & UPDATE MODAL HANDLERS =====
 const paymentModal = document.getElementById('paymentModal');
 const cashBtn = document.getElementById("cashBtn");
 const gcashBtn = document.getElementById("gcashBtn");
@@ -336,29 +473,6 @@ const gcashQrImg = document.getElementById("gcashQrImg");
 const gcashText = document.getElementById("gcashText");
 const cashConfirm = document.getElementById('cashConfirm');
 
-document.querySelectorAll('.pay-order-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-        paymentModal.classList.add('show');
-        gcashQrImg.style.display='none';
-        gcashText.style.display='none';
-        cashConfirm.style.display='none';
-    });
-});
-cashBtn.addEventListener('click', ()=>{
-    cashConfirm.style.display='block';
-    gcashQrImg.style.display='none';
-    gcashText.style.display='none';
-    setTimeout(()=>{ cashConfirm.style.display='none'; },5000);
-});
-gcashBtn.addEventListener('click', ()=>{
-    gcashQrImg.style.display='block';
-    gcashText.style.display='block';
-    cashConfirm.style.display='none';
-});
-document.getElementById('closePaymentModal').addEventListener('click', ()=> paymentModal.classList.remove('show'));
-window.addEventListener('click', e=>{ if(e.target===paymentModal) paymentModal.classList.remove('show'); });
-
-// ===== UPDATE MODAL =====
 const updateModal = document.getElementById('updateModal');
 const closeUpdateModal = document.getElementById('closeUpdateModal');
 const updateLaundryTypes = document.getElementById('updateLaundryTypes');
@@ -373,100 +487,124 @@ let currentUpdateRow = null;
 
 // Clone laundry options for update modal
 function cloneLaundryOptions(){
-    updateLaundryTypes.innerHTML='';
-    laundryOptions.forEach(option=>{
+    updateLaundryTypes.innerHTML = '';
+    laundryOptions.forEach(option => {
         const clone = option.cloneNode(true);
         clone.classList.remove('selected');
         const cloneInput = clone.querySelector('input');
-        cloneInput.checked=false;
-        clone.addEventListener('click', ()=>{
-            updateLaundryTypes.querySelectorAll('.laundry-option').forEach(o=>o.classList.remove('selected'));
+        cloneInput.checked = false;
+        clone.addEventListener('click', () => {
+            updateLaundryTypes.querySelectorAll('.laundry-option').forEach(o => o.classList.remove('selected'));
             clone.classList.add('selected');
-            cloneInput.checked=true;
+            cloneInput.checked = true;
             updateUpdatePrice();
         });
         updateLaundryTypes.appendChild(clone);
     });
 }
 
-// Update price in update modal
 function updateUpdatePrice(){
-    let total=0;
-    const weight = parseFloat(updateWeight.value)||0;
+    let total = 0;
+    const weight = parseFloat(updateWeight.value) || 0;
     const selectedLaundryInput = updateLaundryTypes.querySelector('input[name="laundry_type"]:checked');
     if(selectedLaundryInput) total += weight * parseFloat(selectedLaundryInput.dataset.price);
-    if(updatePickupCheck.checked) total+=70;
+    if(updatePickupCheck.checked) total += 70;
     updatePricePreview.textContent = `Total: ₱${total.toFixed(2)}`;
 }
 
-// Open update modal
-document.querySelectorAll('.update-order-btn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-        const row = e.target.closest('tr');
+// Attach pay/update buttons for each row
+function attachTableButtons(row){
+    row.querySelector('.pay-order-btn').addEventListener('click', () => {
+        paymentModal.classList.add('show');
+        gcashQrImg.style.display = 'none';
+        gcashText.style.display = 'none';
+        cashConfirm.style.display = 'none';
+    });
+
+    row.querySelector('.update-order-btn').addEventListener('click', () => {
         currentUpdateRow = row;
         cloneLaundryOptions();
         const type = row.querySelector('.type-cell').textContent.trim();
         const weight = parseFloat(row.querySelector('.weight-cell').textContent)||0;
         const pickupText = row.querySelector('.pickup-cell').innerHTML;
         updateWeight.value = weight;
-        // select laundry type
         const inputToSelect = updateLaundryTypes.querySelector(`input[value="${type}"]`);
         if(inputToSelect){
             inputToSelect.checked = true;
             inputToSelect.parentElement.classList.add('selected');
         }
-        // pickup
         updatePickupCheck.checked = pickupText.includes('Yes');
         updatePickupDetails.style.display = updatePickupCheck.checked?'block':'none';
         updateModal.classList.add('show');
         updateUpdatePrice();
     });
+}
+
+// Attach existing rows
+document.querySelectorAll('#ordersTable tr').forEach(row => {
+    if(row.querySelector('.pay-order-btn')) attachTableButtons(row);
 });
 
-closeUpdateModal.addEventListener('click', ()=>updateModal.classList.remove('show'));
+// PAYMENT MODAL
+cashBtn.addEventListener('click', ()=>{
+    cashConfirm.style.display='block';
+    gcashQrImg.style.display='none';
+    gcashText.style.display='none';
+    setTimeout(()=>{ cashConfirm.style.display='none'; },5000);
+});
+gcashBtn.addEventListener('click', ()=>{
+    gcashQrImg.style.display='block';
+    gcashText.style.display='block';
+    cashConfirm.style.display='none';
+});
+document.getElementById('closePaymentModal').addEventListener('click', ()=> paymentModal.classList.remove('show'));
+window.addEventListener('click', e=>{ if(e.target===paymentModal) paymentModal.classList.remove('show'); });
+
+// UPDATE MODAL
+closeUpdateModal.addEventListener('click', ()=> updateModal.classList.remove('show'));
 window.addEventListener('click', e=>{ if(e.target===updateModal) updateModal.classList.remove('show'); });
 
-// pickup toggle in update
 updatePickupCheck.addEventListener('change', ()=> {
     updatePickupDetails.style.display = updatePickupCheck.checked?'block':'none';
     updateUpdatePrice();
 });
 
-// floor & room in update
 updateFloorSelect.addEventListener('change', ()=> {
     const floor = parseInt(updateFloorSelect.value);
     updateRoomSelect.innerHTML = '<option value="">Select Room</option>';
     if(floor){
         for(let i=1;i<=5;i++){
-            const room = floor*100+i;
+            const room = floor*100 + i;
             const opt = document.createElement('option');
-            opt.value=room; opt.textContent=room;
+            opt.value = room;
+            opt.textContent = room;
             updateRoomSelect.appendChild(opt);
         }
     }
 });
 
-// weight change
 updateWeight.addEventListener('input', updateUpdatePrice);
 
-// confirm update
+// CONFIRM UPDATE
 confirmUpdate.addEventListener('click', ()=>{
     const selectedLaundryInput = updateLaundryTypes.querySelector('input[name="laundry_type"]:checked');
     if(!selectedLaundryInput) return alert("Please select a laundry type.");
-    const newWeight = parseFloat(updateWeight.value)||0;
-    if(newWeight<=0) return alert("Please enter valid weight.");
+    const newWeight = parseFloat(updateWeight.value) || 0;
+    if(newWeight <= 0) return alert("Please enter valid weight.");
     const newType = selectedLaundryInput.value;
     currentUpdateRow.querySelector('.type-cell').textContent = newType;
     currentUpdateRow.querySelector('.weight-cell').textContent = `${newWeight} kg`;
     currentUpdateRow.querySelector('.order-price').textContent = updatePricePreview.textContent;
-    currentUpdateRow.querySelector('.pickup-cell').textContent = updatePickupCheck.checked?`Yes\nFloor ${updateFloorSelect.value}, Unit ${updateRoomSelect.value}`:'No';
+    currentUpdateRow.querySelector('.pickup-cell').textContent = updatePickupCheck.checked ?
+        `Yes<br>Floor ${updateFloorSelect.value}, Unit ${updateRoomSelect.value}` : 'No';
     updateModal.classList.remove('show');
-    alert("Order updated! (Note: changes are only client-side in this demo)");
+    alert("Order updated! (changes are client-side)");
 });
 </script>
 
 </body>
 </html>
+
 
 
 
