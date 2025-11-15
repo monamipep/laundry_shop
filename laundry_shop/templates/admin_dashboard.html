@@ -193,12 +193,14 @@ select, input[type=text], input[type=number] { padding:5px; border-radius:4px; b
         </td>
 
         <!-- PAYMENT FIXED HERE -->
-        <td class="payment-cell">
-  <button class="btn btn-small pay-btn" data-id="{{ o.id }}" style="color:red; font-weight:bold; border:1px solid red; background:white;">
-    Pending
+
+<td class="payment-cell">
+  <button class="btn btn-small pay-btn payment-btn {% if o.is_paid %}paid{% else %}pending{% endif %}"
+          data-id="{{ o.id }}"
+          {% if o.is_paid %}disabled{% endif %}>
+    {{ 'Paid' if o.is_paid else 'Pending' }}
   </button>
 </td>
-
 
         <!-- DATE FIXED HERE -->
         <td>{{ o.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
@@ -816,3 +818,5 @@ qs('#logout-btn').addEventListener('click', async (e) => {
 </script>
 </body>
 </html>
+
+
