@@ -7,46 +7,58 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import pymysql
 import os
 import calendar
+import random
 from sqlalchemy import text
 
-# --- Flask app ---
+#========================================================================================= 
+#Flask app 
+#========================================================================================= 
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 app.secret_key = "mysecretkey"
 
-# --- MySQL driver ---
+#========================================================================================= 
+# MySQL driver 
+#========================================================================================= 
 pymysql.install_as_MySQLdb()
 
-# --- Database config ---
+#========================================================================================= 
+# Database config
+#========================================================================================= 
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:@localhost/laundry_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+def generate_otp():
+    """Generate a 6-digit OTP"""
+    return str(random.randint(100000, 999999))
 
-# --- DATABASE MODELS ---
+#========================================================================================= 
+# DATABASE MODELS
+#========================================================================================= 
 class User(db.Model):
     __tablename__ = 'user'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), default="customer")
-    laundry_orders = db.relationship('LaundryOrder', backref='user', lazy=True, cascade="all, delete")
+        id = db.Column(db.Integer, primary_key=True)
+        username = db.Column(db.String(100), unique=True, nullable=False)
+        password = db.Column(db.String(255), nullable=False)
+        role = db.Column(db.String(20), default="customer")
+        laundry_orders = db.relationship('LaundryOrder', backref='user', lazy=True, cascade="all, delete")
 
 
 class LaundryOrder(db.Model):
     __tablename__ = 'laundry_order'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    laundry_type = db.Column(db.String(100))
-    weight_kg = db.Column(db.Float)
-    price = db.Column(db.Float)
-    status = db.Column(db.String(50), default="Pending")
-    pickup_requested = db.Column(db.Boolean, default=False)
-    floor_number = db.Column(db.String(10))
-    unit_number = db.Column(db.String(10))
-    date_created = db.Column(db.DateTime, default=datetime.now)
-    date_updated = db.Column(db.DateTime, onupdate=datetime.now)
-    payment_status = db.Column(db.String(20), default="Pending")
-    is_paid = db.Column(db.Boolean, default=False)
+        user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+            laundry_type = db.Column(db.String(100))
+            weight_kg = db.Column(db.Float)
+            price = db.Column(db.Float)
+            status = db.Column(db.String(50), default="Pending")
+            pickup_requested = db.Column(db.Boolean, default=False)
+            floor_number = db.Column(db.String(10))
+            unit_number = db.Column(db.String(10))
+            date_created = db.Column(db.DateTime, default=datetime.now)
+            date_updated = db.Column(db.DateTime, onupdate=datetime.now)
+            payment_status = db.Column(db.String(20), default="Pending")
+            is_paid = db.Column(db.Boolean, default=False)
 
 # New: persistent Income table — income entries are independent of users/orders
 class Income(db.Model):
@@ -59,7 +71,7 @@ class Income(db.Model):
         return f"<Income {self.date} ₱{self.total}>"
 
 
-# --- Helper ---
+# Helper 
 def get_price_per_kg(laundry_type):
     mapping = {
         "Wash-Dry-Fold": 23,
@@ -109,13 +121,15 @@ def add_income_entry(entry_date: date, amount: float):
         db.session.rollback()
 
 
-# --- ROUTES ---
+# ROUTES 
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
 
-# --- LOGIN ---
+#========================================================================================= 
+# LOGIN 
+#========================================================================================= 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -144,28 +158,73 @@ def login():
     return render_template('login.html')
 
 
-# --- REGISTER ---
+#========================================================================================= 
+#register
+#========================================================================================= 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
-        if not username or not password:
-            flash("Username and password required.", "danger")
-            return redirect(url_for('register'))
-        if User.query.filter_by(username=username).first():
-            flash("Username already exists!", "danger")
-            return redirect(url_for('register'))
-        hashed_pw = generate_password_hash(password)
-        new_user = User(username=username, password=hashed_pw, role='customer')
-        db.session.add(new_user)
-        db.session.commit()
-        flash("Account created successfully! Please log in.", "success")
-        return redirect(url_for('login'))
-    return render_template('register.html')
+    if request.method == 'GET':
+        return render_template('register.html')
+
+    # POST via AJAX
+    data = request.get_json(force=True)
+    if not data:
+        return jsonify({"success": False, "error": "No data received"})
+
+    username = data.get('username')
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify({"success": False, "error": "Username already exists"})
+
+    hashed_pw = generate_password_hash(data.get('password'))
+
+#========================================================================================= 
+    # Create a new user in the database
+#========================================================================================= 
+    new_user = User(
+        username=username,
+        password=hashed_pw,
+        role='customer'  # default role
+    )
+    db.session.add(new_user)
+    db.session.commit()
+
+    # Store additional info in session for OTP verification
+    session['new_user_id'] = new_user.id
+    otp = generate_otp()
+    session['otp'] = otp
+
+    # send OTP via email/SMS
+    print(f"OTP for {username}: {otp}")
+
+    return jsonify({"success": True, "otp": otp})
+
+#========================================================================================= 
+#        OTP verification 
+#========================================================================================= 
+@app.route('/verify_otp', methods=['POST'])
+def verify_otp():
+    user_id = session.get('new_user_id')
+    sent_otp = session.get('otp')
+    data = request.get_json()
+    if not user_id or not sent_otp or not data:
+        return jsonify({"success": False, "error": "OTP verification failed"})
+
+    user_otp = data.get('otp')
+    if user_otp == sent_otp:
+        
+#========================================================================================= 
+        # OTP correct → remove session and allow login
+#========================================================================================= 
+        session.pop('otp', None)
+        session.pop('new_user_id', None)
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Incorrect OTP"})
 
 
-# --- USER DASHBOARD ---
+#========================================================================================= 
+#                 USER DASHBOARD 
+#========================================================================================= 
 @app.route('/user', methods=['GET', 'POST'])
 def user_dashboard():
     if 'user_id' not in session:
@@ -180,13 +239,18 @@ def user_dashboard():
     
 
     if request.method == 'POST':
+        
+#========================================================================================= 
         # Validate laundry type
+#=========================================================================================
         laundry_type = request.form.get('laundry_type')
         if not laundry_type:
             flash("Please select a laundry type.", "danger")
             return redirect(url_for('user_dashboard'))
 
+#========================================================================================= 
         # Validate weight
+#========================================================================================= 
         try:
             weight = float(request.form.get('weight', 0))
             if weight <= 0:
@@ -196,18 +260,24 @@ def user_dashboard():
             flash("Please enter a valid weight.", "danger")
             return redirect(url_for('user_dashboard'))
 
-        # Pickup/delivery
+#========================================================================================= 
+        #delivery
+#========================================================================================= 
         pickup_requested = 'pickup_requested' in request.form
         floor = request.form.get('floor_number') if pickup_requested else None
         unit = request.form.get('unit_number') if pickup_requested else None
 
+#========================================================================================= 
         # Base price calculation
+#========================================================================================= 
         price = get_price_per_kg(laundry_type) * weight
         if pickup_requested:
-            price += 20  # delivery fee
+            price += 70 
 
        
+#========================================================================================= 
         # Create new order
+#========================================================================================= 
         new_order = LaundryOrder(
             user_id=user.id,
             laundry_type=laundry_type,
@@ -228,12 +298,16 @@ def user_dashboard():
         flash("Order submitted successfully!", "success")
         return redirect(url_for('user_dashboard'))
 
+#========================================================================================= 
     # Fetch user orders
+#========================================================================================= 
     orders = LaundryOrder.query.filter_by(user_id=user.id).order_by(LaundryOrder.date_created.desc()).all()
     return render_template('user_dashboard.html', user=user, orders=orders)
 
 
+#========================================================================================= 
 #order
+#========================================================================================= 
 @app.route("/add_order", methods=["POST"])
 def add_order():
     data = request.get_json()
@@ -251,7 +325,9 @@ def add_order():
         floor = data.get('floor_number')
         unit = data.get('unit_number')
 
+#========================================================================================= 
         # Create new order using SQLAlchemy
+#========================================================================================= 
         new_order = LaundryOrder(
             user_id=user_id,
             laundry_type=laundry_type,
@@ -267,7 +343,9 @@ def add_order():
         db.session.add(new_order)
         db.session.commit()
 
+#========================================================================================= 
         # Persist income
+#========================================================================================= 
         order_date = new_order.date_created.date() if new_order.date_created else datetime.now().date()
         add_income_entry(order_date, price)
 
@@ -291,7 +369,9 @@ def add_order():
 
 
 
-# --- ADMIN DASHBOARD ---
+#========================================================================================= 
+# ADMIN DASHBOARD
+#========================================================================================= 
 @app.route('/admin')
 def admin_dashboard():
     if 'user_id' not in session:
@@ -303,22 +383,26 @@ def admin_dashboard():
 
     try:
         pending_orders = LaundryOrder.query.filter_by(status="Pending").order_by(LaundryOrder.date_created.desc()).all()
-        # outerjoin to avoid crashes if some orders point to deleted users
+   # to avoid crashes if some orders point to deleted users
         all_orders = db.session.query(LaundryOrder).outerjoin(User).order_by(LaundryOrder.date_created.desc()).all()
         users = User.query.all()
 
-        # total_income now comes from Income table so it stays even after deleting users/orders
+#========================================================================================= 
+        # total_income now comes from Income table 
+#========================================================================================= 
         total_income_row = db.session.query(db.func.sum(Income.total)).scalar()
         total_income = float(total_income_row or 0.0)
 
-        # monthly_income used by server-side template if needed (kept in case template uses it)
+#========================================================================================= 
+        # monthly_income used by server-side 
+#========================================================================================= 
         from sqlalchemy import func
         monthly_income = db.session.query(
             func.date_format(Income.date, '%Y-%m').label('month'),
             func.sum(Income.total).label('total')
         ).group_by(func.date_format(Income.date, '%Y-%m')).all()
 
-        # total_orders for summary card (counts current orders)
+ 
         total_orders = db.session.query(db.func.count(LaundryOrder.id)).scalar() or 0
 
         return render_template(
@@ -330,7 +414,7 @@ def admin_dashboard():
             total_income=total_income,
             monthly_income=monthly_income,
             total_orders=total_orders,
-            orders=all_orders  # keep variable name users template expects
+            orders=all_orders  
         )
     except Exception as e:
         print("🔥 ADMIN DASHBOARD ERROR:", e)
@@ -338,7 +422,9 @@ def admin_dashboard():
         return redirect(url_for('login'))
 
 
-## --- Update order status (Admin: Ready, Completed, etc.) ---
+#========================================================================================= 
+## Update order status (Admin: Ready, Completed, 
+#========================================================================================= 
 @app.route('/api/update_status/<int:order_id>', methods=['POST'])
 def api_update_status(order_id):
     order = LaundryOrder.query.get(order_id)
@@ -358,15 +444,18 @@ def api_update_status(order_id):
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Server error'}), 500
 
-
-# --- Mark order as Paid (AJAX) ---
+#========================================================================================= 
+#  Mark order as Paid (AJAX) 
+#========================================================================================= 
 @app.route('/api/mark_payment/<int:order_id>', methods=['POST'])
 def api_mark_payment(order_id):
     order = LaundryOrder.query.get(order_id)
     if not order:
         return jsonify({'success': False, 'error': 'Order not found'}), 404
     try:
+        #========================================================================================= 
         # Update payment info
+        #========================================================================================= 
         order.payment_status = "Paid"
         order.is_paid = True
         order.date_updated = datetime.now()
@@ -379,9 +468,10 @@ def api_mark_payment(order_id):
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-# --- Delete order (Admin) ---
-@app.route('/api/delete_order/<int:order_id>', methods=['POST'])
+#========================================================================================= 
+#  Delete order (Admin) 
+#========================================================================================= 
+@app.route('/api/delete_order/<int:order_id>', methods=['POST', 'DELETE'])
 def api_delete_order(order_id):
     order = LaundryOrder.query.get(order_id)
     if not order:
@@ -389,13 +479,15 @@ def api_delete_order(order_id):
     try:
         db.session.delete(order)
         db.session.commit()
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'message': f'Order {order_id} deleted'})
     except Exception as e:
-        print("🔥 Delete Order Error:", e)
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
-        return jsonify({'success': False, 'error': 'Server error'}), 500
-
-# --- ACCEPT ORDER (AJAX) ---
+        return jsonify({'success': False, 'error': str(e)}), 500
+ #========================================================================================= 
+# ACCEPT ORDER (AJAX) 
+ #========================================================================================= 
 @app.route('/api/accept_order/<int:order_id>', methods=['POST'])
 def api_accept_order(order_id):
     order = LaundryOrder.query.get(order_id)
@@ -411,8 +503,9 @@ def api_accept_order(order_id):
         print("🔥 Accept Order Error:", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Server error'}), 500
-
-# --- INCOME BY MONTH & DAY ---
+ #========================================================================================= 
+#  INCOME BY MONTH & DAY 
+ #========================================================================================= 
 @app.route('/api/income_by_month')
 def api_income_by_month():
     try:
@@ -461,8 +554,9 @@ def api_income_by_month():
         print("🔥 Income Error:", e)
         return jsonify({"success": False, "error": "Server error"}), 500
 
-
-# --- INCOME BY WEEK (Mon → Sun) ---
+ #========================================================================================= 
+# INCOME BY WEEK (Mon → Sun)
+ #========================================================================================= 
 @app.route('/api/income_by_week')
 def api_income_by_week():
     try:
@@ -499,8 +593,9 @@ def api_income_by_week():
         print("🔥 Weekly Income Error:", e)
         return jsonify({"success": False, "error": "Server error"}), 500
 
-
-# --- DELETE MONTHLY INCOME ---
+ #========================================================================================= 
+#  DELETE MONTHLY INCOME 
+ #========================================================================================= 
 @app.route('/api/delete_income_month', methods=['POST'])
 def delete_income_month():
     try:
@@ -511,23 +606,26 @@ def delete_income_month():
 
         from datetime import datetime, date
         year, month = map(int, month_str.split('-'))
-
+ #========================================================================================= 
         # Compute start and end of month
+ #========================================================================================= 
         start_date = date(year, month, 1)
         if month == 12:
             end_date = date(year + 1, 1, 1)
         else:
             end_date = date(year, month + 1, 1)
-
+ #========================================================================================= 
         # Query incomes in that month
+ #========================================================================================= 
         rows = Income.query.filter(Income.date >= start_date, Income.date < end_date).all()
         deleted = 0
         for r in rows:
             db.session.delete(r)
             deleted += 1
         db.session.commit()
-
+ #========================================================================================= 
         # Update total income
+ #========================================================================================= 
         total_income = db.session.query(db.func.sum(Income.total)).scalar() or 0
 
         return jsonify(success=True, deleted=deleted, total_income=total_income)
@@ -539,8 +637,9 @@ def delete_income_month():
 
 
 
-    
-# --- Initialize DB ---
+ #=========================================================================================   
+# Initialize DB 
+#==============================================================================================
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
@@ -562,5 +661,7 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
+
 
 
