@@ -331,4 +331,27 @@ body {
   box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 }
 
+/*payment*/
+
+.payment-btn {
+    font-weight: bold;
+    border: 1px solid;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+.payment-btn.paid {
+    color: white;
+    background-color: green;
+    border-color: green;
+}
+.payment-btn.pending {
+    color: red;
+    background-color: white;
+    border-color: red;
+}
+
+
+
+
+
 
