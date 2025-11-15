@@ -398,7 +398,7 @@ document.addEventListener('click', async (e) => {
   const id = button.dataset.id;
   if (!id) return;
 
-  // --- Centered confirmation popup ---
+  // --- Confirmation modal ---
   const backdrop = document.createElement('div');
   Object.assign(backdrop.style, {
     position: 'fixed',
@@ -418,8 +418,9 @@ document.addEventListener('click', async (e) => {
     textAlign: 'center',
     boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
   });
+
   modal.innerHTML = `
-    <p>Mark this order #${id} as Paid?</p>
+    <p>Mark order #${id} as Paid?</p>
     <button id="confirm-pay" style="margin:8px 12px;padding:6px 14px;background:#27ae60;color:#fff;border:none;border-radius:5px;cursor:pointer;">Yes</button>
     <button id="cancel-pay" style="margin:8px 12px;padding:6px 14px;background:#c0392b;color:#fff;border:none;border-radius:5px;cursor:pointer;">No</button>
   `;
@@ -427,23 +428,19 @@ document.addEventListener('click', async (e) => {
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
 
-  // --- Confirm action ---
+  // --- Confirm ---
   modal.querySelector('#confirm-pay').addEventListener('click', async () => {
     try {
-      const resp = await fetch(`/api/mark_payment/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payment_status: 'Paid' })
-      });
+      const resp = await fetch(`/api/mark_payment/${id}`, { method: 'POST' });
       const data = await resp.json();
 
       if (data.success) {
-        // Update button to green Paid
+        // Update button UI
         button.textContent = 'Paid';
         button.style.color = 'white';
         button.style.backgroundColor = 'green';
         button.style.border = '1px solid green';
-        button.disabled = true; // optional: prevent further clicks
+        button.disabled = true;
       } else {
         alert(data.error || 'Failed to mark as Paid');
       }
@@ -455,12 +452,11 @@ document.addEventListener('click', async (e) => {
     }
   });
 
-  // --- Cancel action ---
+  // --- Cancel ---
   modal.querySelector('#cancel-pay').addEventListener('click', () => {
     backdrop.remove();
   });
 });
-
 
 
 
