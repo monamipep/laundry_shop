@@ -233,36 +233,59 @@ def user_dashboard():
     return render_template('user_dashboard.html', user=user, orders=orders)
 
 
-
-
-
-
-
-
-
-#payment admin
-@app.route('/api/admin_update_payment/<int:order_id>', methods=['POST'])
-def admin_update_payment(order_id):
-    if 'role' not in session or session['role'] != 'admin':
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-
-    order = LaundryOrder.query.get(order_id)
-    if not order:
-        return jsonify({'success': False, 'error': 'Order not found'}), 404
+#order
+@app.route("/add_order", methods=["POST"])
+def add_order():
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "No data received"}), 400
+    if 'user_id' not in session:
+        return jsonify({"message": "User not logged in"}), 401
 
     try:
-        order.payment_status = "Paid"
-        order.is_paid = True
-        # Only set date_updated if it exists
-        if hasattr(order, 'date_updated'):
-            order.date_updated = datetime.now()
+        user_id = session['user_id']
+        laundry_type = data.get('laundry_type')
+        weight = float(data.get('weight', 0))
+        price = float(data.get('price', 0))
+        pickup_requested = bool(data.get('pickup_requested', False))
+        floor = data.get('floor_number')
+        unit = data.get('unit_number')
+
+        # Create new order using SQLAlchemy
+        new_order = LaundryOrder(
+            user_id=user_id,
+            laundry_type=laundry_type,
+            weight_kg=weight,
+            price=price,
+            pickup_requested=pickup_requested,
+            floor_number=floor,
+            unit_number=unit,
+            status="Pending",
+            payment_status="Pending"
+        )
+
+        db.session.add(new_order)
         db.session.commit()
-        return jsonify({'success': True})
+
+        # Persist income
+        order_date = new_order.date_created.date() if new_order.date_created else datetime.now().date()
+        add_income_entry(order_date, price)
+
+        return jsonify({
+            "id": new_order.id,
+            "laundry_type": laundry_type,
+            "weight": weight,
+            "price": price,
+            "pickup_requested": pickup_requested,
+            "floor_number": floor,
+            "unit_number": unit,
+            "date_created": new_order.date_created.strftime("%Y-%m-%d %H:%M")
+        })
+
     except Exception as e:
         db.session.rollback()
-        import traceback
-        traceback.print_exc()   # <- This prints full error in console
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({"message": str(e)}), 500
+
 
 
 
@@ -336,23 +359,26 @@ def api_update_status(order_id):
         return jsonify({'success': False, 'error': 'Server error'}), 500
 
 
-# --- Update payment status (User: Pay button) ---
-@app.route('/api/update_payment/<int:order_id>', methods=['POST'])
-def api_update_payment(order_id):
+# --- Mark order as Paid (AJAX) ---
+@app.route('/api/mark_payment/<int:order_id>', methods=['POST'])
+def api_mark_payment(order_id):
     order = LaundryOrder.query.get(order_id)
     if not order:
         return jsonify({'success': False, 'error': 'Order not found'}), 404
     try:
+        # Update payment info
         order.payment_status = "Paid"
         order.is_paid = True
         order.date_updated = datetime.now()
+
         db.session.commit()
+
         return jsonify({'success': True, 'order': order_to_dict(order)})
     except Exception as e:
-        print("🔥 Payment Update Error:", e)
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
-        return jsonify({'success': False, 'error': 'Server error'}), 500
-
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # --- Delete order (Admin) ---
 @app.route('/api/delete_order/<int:order_id>', methods=['POST'])
@@ -368,7 +394,6 @@ def api_delete_order(order_id):
         print("🔥 Delete Order Error:", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Server error'}), 500
-
 
 # --- ACCEPT ORDER (AJAX) ---
 @app.route('/api/accept_order/<int:order_id>', methods=['POST'])
@@ -537,3 +562,5 @@ def logout():
 # --- Run the app ---
 if __name__ == '__main__':
     app.run(debug=True)
+
+
