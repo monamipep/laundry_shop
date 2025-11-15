@@ -20,7 +20,7 @@ body {
 .container {
     max-width: 450px;
     width: 90%;
-     background: rgba(240, 248, 255, 0.96);
+    background: rgba(240, 248, 255, 0.96);
     padding: 30px 25px;
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -78,13 +78,62 @@ a {
 a:hover {
     color: #0056b3;
 }
+
+/* OTP modal styles */
+.otp-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.otp-modal {
+    background: rgba(240, 248, 255, 0.96);
+    padding: 25px 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    max-width: 350px;
+    width: 90%;
+}
+
+.otp-modal input {
+    padding: 8px;
+    width: 80%;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid #aac8ff;
+    font-size: 14px;
+}
+
+.otp-modal button {
+    padding: 8px 14px;
+    margin: 6px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#verifyOtpBtn {
+    background: #007bff;
+    color: white;
+}
+
+#cancelOtpBtn {
+    background: #c0392b;
+    color: white;
+}
 </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Register</h2>
-    <form method="POST" id="registerForm">
+    <form id="registerForm">
         <input type="text" name="fullname" placeholder="Full Name" required>
         <input type="text" name="username" placeholder="Username" required>
         <input type="number" name="age" placeholder="Age" min="1" required>
@@ -104,12 +153,82 @@ a:hover {
 <script>
 const eye = document.getElementById('toggleEye');
 const password = document.getElementById('password');
-
 eye.addEventListener('mousedown', () => password.type = 'text');
 eye.addEventListener('mouseup', () => password.type = 'password');
 eye.addEventListener('mouseleave', () => password.type = 'password');
+
+// --- Handle registration via AJAX ---
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+        const resp = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await resp.json();
+
+        if (result.success) {
+            const otp = result.otp; // in production, OTP sent via email/SMS
+
+            // --- Create OTP modal ---
+            const backdrop = document.createElement('div');
+            backdrop.classList.add('otp-backdrop');
+
+            const modal = document.createElement('div');
+            modal.classList.add('otp-modal');
+            modal.innerHTML = `
+                <h3>Enter OTP</h3>
+                <p>We've sent an OTP to your email/phone.</p>
+                <p><strong>Test OTP: ${otp}</strong></p> <!-- show OTP for testing -->
+                <input type="text" id="otpInput" placeholder="6-digit OTP">
+                <br>
+                <button id="verifyOtpBtn">Verify</button>
+                <button id="cancelOtpBtn">Cancel</button>
+            `;
+            backdrop.appendChild(modal);
+            document.body.appendChild(backdrop);
+
+            // --- Verify OTP ---
+            modal.querySelector('#verifyOtpBtn').addEventListener('click', async () => {
+                const userOtp = modal.querySelector('#otpInput').value.trim();
+                if (userOtp === otp) {
+                    const verifyResp = await fetch('/verify_otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ otp: userOtp })
+                    });
+                    const verifyResult = await verifyResp.json();
+                    if (verifyResult.success) {
+                        alert('Registration successful! Please login.');
+                        window.location.href = '/login';
+                    } else {
+                        alert('OTP verification failed.');
+                    }
+                } else {
+                    alert('Incorrect OTP. Please try again.');
+                }
+            });
+
+            modal.querySelector('#cancelOtpBtn').addEventListener('click', () => {
+                backdrop.remove();
+            });
+
+        } else {
+            alert(result.error || 'Registration failed.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Server error during registration.');
+    }
+});
 </script>
 
 </body>
 </html>
+
+
 
